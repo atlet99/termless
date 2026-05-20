@@ -23,13 +23,12 @@ ifeq ($(NVMRC),)
   $(error .nvmrc not found or empty)
 endif
 
-# Source nvm if available, then use the version from .nvmrc
-define NVM_USE
-[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh"; nvm use --silent 2>/dev/null || nvm install --lts 2>/dev/null
-endef
+# Ensure node from nvm is used - executed at Makefile parse time
+$(shell [ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent 2>/dev/null || nvm install --lts 2>/dev/null)
 
-# Export so all recipe lines inherit the correct node
-export PATH := $(shell bash -c '[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent >/dev/null 2>&1 && echo $$PATH')
+# Export PATH with nvm node for all recipe lines
+export PATH := $(shell bash -lc '[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent >/dev/null 2>&1 && echo $$PATH')
+export NVM_DIR
 
 include makefiles/colors.mk
 include makefiles/help.mk
