@@ -5,6 +5,8 @@ import { authAttemptsTotal } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
+  const redisUrl = process.env.REDIS_URL
+
   fastify.post(
     '/auth/login',
     {
@@ -39,7 +41,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
+      const redisUrl = process.env.REDIS_URL
       const ttlSeconds = 8 * 60 * 60
       const token = await createSession(
         redisUrl,
@@ -74,8 +76,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     },
     async (request, _reply) => {
       const authHeader = request.headers.authorization
-      if (authHeader?.startsWith('Bearer ')) {
-        const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
+      if (authHeader?.startsWith('Bearer ') && redisUrl) {
         await destroySession(redisUrl, authHeader.slice(7))
       }
       return { ok: true }

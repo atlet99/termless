@@ -6,7 +6,7 @@ export default defineConfig({
   schema: path.join(__dirname, 'schema.prisma'),
   migrate: {
     async url() {
-      return process.env.DATABASE_URL ?? 'postgresql://termless:password@localhost:5432/termless'
+      return process.env.DATABASE_URL ?? ''
     },
   },
 })

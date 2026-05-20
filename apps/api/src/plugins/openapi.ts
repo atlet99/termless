@@ -13,8 +13,7 @@ export const register = fp(async (fastify) => {
         license: { name: 'Apache 2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0' },
       },
       servers: [
-        { url: 'https://hub.example.com', description: 'Production' },
-        { url: 'http://localhost:3000', description: 'Development' },
+        { url: process.env.API_PUBLIC_URL ?? '/api', description: 'Current server' },
       ],
       components: {
         securitySchemes: {

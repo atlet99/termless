@@ -6,6 +6,8 @@ import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
 
 export async function registerSessionRoutes(fastify: FastifyInstance) {
+  const workspaceRoot = process.env.WORKSPACE_ROOT
+
   fastify.get(
     '/api/v1/sessions',
     {
@@ -48,7 +50,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         },
       })
 
-      const workspacePath = `${process.env.WORKSPACE_ROOT ?? '/workspace'}/termless-user-${user.id}`
+      const workspacePath = `${workspaceRoot}/termless-user-${user.id}`
 
       if (user.systemUid) {
         const port = 10000 + Math.floor(Math.random() * 50000)

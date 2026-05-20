@@ -17,13 +17,15 @@ export const register = fp(async (fastify) => {
 
   fastify.decorateRequest('user', null)
 
+  const redisUrl = process.env.REDIS_URL
+
   fastify.addHook('onRequest', async (request, _reply) => {
+    if (!redisUrl) return
     const authHeader = request.headers.authorization
     const cookieToken = request.cookies.termless_session
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7)
-      const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
       const user = await getSession(redisUrl, token)
       if (user) {
         request.user = user
@@ -32,7 +34,6 @@ export const register = fp(async (fastify) => {
     }
 
     if (cookieToken) {
-      const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
       const user = await getSession(redisUrl, cookieToken)
       if (user) {
         request.user = user
