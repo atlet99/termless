@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+##@ Checks
+
 i18n-check:  ## Check i18n locale key integrity
 	$(call log_step, "Checking i18n locale keys")
 	@node --import=tsx hack/i18n-integrity.ts

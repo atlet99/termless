@@ -14,7 +14,7 @@
 
 help:  ## Show this help
 	@printf "\n$(BWHITE)Termless$(RESET) — dev toolkit\n\n"
-	@grep -E '^[a-zA-Z_0-9-]+:.*?## .*$$|^##@' $(MAKEFILE_LIST) | \
+	@grep -hE '^[a-zA-Z_0-9-]+:.*?## .*$$|^##@' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; \
 			/^##@/ { \
 				gsub(/^##@ /, "", $$0); \

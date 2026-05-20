@@ -24,25 +24,7 @@
     "turbo": "^2.5.0",
     "typescript": "^5.8.3"
   },
-  "pnpm": {
-    "overrides": {
-      "@typescript-eslint/utils": "^8.59.4",
-      "@typescript-eslint/type-utils": "^8.59.4",
-      "@typescript-eslint/tsconfig-utils": "^8.59.4",
-      "@typescript-eslint/scope-manager": "^8.59.4",
-      "@typescript-eslint/types": "^8.59.4",
-      "@typescript-eslint/visitor-keys": "^8.59.4"
-    },
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@prisma/engines",
-      "argon2",
-      "esbuild",
-      "prisma",
-      "unrs-resolver"
-    ]
-  },
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@11.2.1",
   "engines": {
     "node": ">=24.0.0"
   },

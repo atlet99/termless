@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+##@ Dev
+
 install:  ## Install dependencies (pnpm)
 	$(call log_step, "Installing dependencies")
 	@pnpm install --frozen-lockfile

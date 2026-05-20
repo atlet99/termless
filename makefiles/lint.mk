@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+##@ Lint
+
 lint:  ## Run ESLint (type-aware) + Biome (format)
 	$(call log_step, "Running ESLint")
 	@pnpm turbo run lint

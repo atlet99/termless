@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+##@ OpenAPI
+
 openapi-export:  ## Export OpenAPI spec to openapi.json
 	$(call log_step, "Exporting OpenAPI spec")
 	@node --import=tsx apps/api/src/scripts/export-spec.ts > openapi.json

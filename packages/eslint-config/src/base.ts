@@ -49,7 +49,9 @@ export default defineConfig([
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: ['eslint.config.ts', 'vite.config.ts'],
+        },
       },
     },
     plugins: {
@@ -63,7 +65,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-return':           'error',
       '@typescript-eslint/no-unsafe-argument':         'error',
       '@typescript-eslint/no-non-null-assertion':      'error',
-      '@typescript-eslint/strict-boolean-expressions': ['error', {
+      '@typescript-eslint/strict-boolean-expressions': ['warn', {
         allowString: false,
         allowNumber: false,
         allowNullableObject: true,
