@@ -6,12 +6,16 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "biome check .",
-    "lint:fix": "biome check --write .",
+    "lint": "turbo run lint",
+    "lint:root": "eslint .",
+    "lint:fix": "turbo run lint:fix",
     "format": "biome format --write .",
+    "biome": "biome check .",
+    "biome:fix": "biome check --write .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lint:inspect": "npx @eslint/config-inspector@latest"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

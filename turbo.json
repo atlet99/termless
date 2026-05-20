@@ -4,7 +4,16 @@
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "dev": { "cache": false, "persistent": true },
     "typecheck": { "dependsOn": ["^build"] },
-    "lint": { "outputs": [] },
+    "lint": {
+      "dependsOn": [],
+      "inputs": [
+        "src/**/*.{ts,tsx,js,jsx}",
+        "eslint.config.ts",
+        "../../packages/eslint-config/src/**"
+      ],
+      "outputs": [],
+      "cache": true
+    },
     "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] }
   }
 }
