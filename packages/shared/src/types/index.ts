@@ -31,10 +31,9 @@ export interface AuthenticatedUser {
   role: Role
 }
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: AuthenticatedUser
-  }
+export interface PaginationQuery {
+  page?: number
+  limit?: number
 }
 
 export interface ApiResponse<T> {
@@ -45,9 +44,4 @@ export interface ApiError {
   error: string
   message: string
   statusCode: number
-}
-
-export interface PaginationQuery {
-  page?: number
-  limit?: number
 }

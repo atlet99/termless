@@ -18,7 +18,7 @@ import { TerminalView } from '../components/Terminal'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 
-export function DashboardPage({ onBack }: { onBack: () => void }) {
+export function DashboardPage() {
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
@@ -44,7 +44,10 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
       <div className="h-screen flex flex-col bg-zinc-950">
         <div className="flex items-center gap-4 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
           <button
-            onClick={() => setActiveSessionId(null)}
+            type="button"
+            onClick={() => {
+              setActiveSessionId(null)
+            }}
             className="text-sm text-zinc-400 hover:text-zinc-100"
           >
             ← Back
@@ -64,7 +67,11 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
         <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-zinc-400">{user?.email}</span>
-          <button onClick={logout} className="text-sm text-zinc-500 hover:text-zinc-100">
+          <button
+            type="button"
+            onClick={logout}
+            className="text-sm text-zinc-500 hover:text-zinc-100"
+          >
             Logout
           </button>
         </div>
@@ -75,7 +82,10 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
           {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
             <button
               key={tool}
-              onClick={() => createSession.mutate(tool)}
+              type="button"
+              onClick={() => {
+                createSession.mutate(tool)
+              }}
               disabled={createSession.isPending}
               className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
             >
@@ -99,13 +109,19 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setActiveSessionId(session.id)}
+                  type="button"
+                  onClick={() => {
+                    setActiveSessionId(session.id)
+                  }}
                   className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
                 >
                   Connect
                 </button>
                 <button
-                  onClick={() => deleteSession.mutate(session.id)}
+                  type="button"
+                  onClick={() => {
+                    deleteSession.mutate(session.id)
+                  }}
                   className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
                 >
                   Delete

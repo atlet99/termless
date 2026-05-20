@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { Counter, Gauge, Histogram, collectDefaultMetrics,  } from 'prom-client'
+import { Counter, Gauge, Histogram, collectDefaultMetrics } from 'prom-client'
 
 collectDefaultMetrics({ prefix: 'termless_' })
 
@@ -65,6 +65,4 @@ export const dbConnectionPoolSize = new Gauge({
   help: 'PostgreSQL connection pool active connections',
 })
 
-
-
-export {register} from 'prom-client'
+export { register } from 'prom-client'

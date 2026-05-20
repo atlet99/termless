@@ -1,5 +1,5 @@
-import { defineConfig } from 'eslint/config'
 import { baseConfig, nodeConfig, securityConfig } from '@termless/eslint-config'
+import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
   ...baseConfig,

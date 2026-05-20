@@ -12,9 +12,8 @@
  * limitations under the License.
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-import { join, relative } from 'node:path'
-import { execSync } from 'node:child_process'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 
 const ROOT = join(import.meta.dirname, '..')
 const LOCALES_DIR = join(ROOT, 'apps', 'dashboard', 'src', 'i18n', 'locales')
@@ -63,7 +62,7 @@ function main() {
 
   let hasErrors = false
 
-  console.log(`\x1b[1;36mℹ\x1b[0m i18n integrity check`)
+  console.log('\x1b[1;36mℹ\x1b[0m i18n integrity check')
   console.log(`  Base locale: \x1b[36m${base}\x1b[0m (${baseKeys.size} keys)`)
 
   for (const locale of locales.slice(1)) {

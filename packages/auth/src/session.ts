@@ -12,12 +12,13 @@
  * limitations under the License.
  */
 
+import type { RedisClientType } from 'redis'
 import type { AuthenticatedUser } from '@termless/shared'
 import { createClient } from 'redis'
 
-let redisClient: ReturnType<typeof createClient> | null = null
+let redisClient: RedisClientType | null = null
 
-export async function getRedisClient(redisUrl: string) {
+export async function getRedisClient(redisUrl: string): Promise<RedisClientType> {
   if (!redisClient) {
     redisClient = createClient({ url: redisUrl })
     redisClient.on('error', (err) => console.error('Redis error:', err))

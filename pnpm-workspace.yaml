@@ -8,3 +8,8 @@ allowBuilds:
   esbuild: true
   prisma: true
   unrs-resolver: true
+peerDependencyRules:
+  allowAny:
+    - eslint-plugin-react
+    - eslint-plugin-jsx-a11y
+    - eslint-plugin-vitest

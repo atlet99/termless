@@ -14,54 +14,65 @@
 
 import type { PrismaClient } from '@prisma/client'
 import type { FastifyInstance } from 'fastify'
+import WebSocket from 'ws'
 
 export async function registerTerminalWs(fastify: FastifyInstance) {
-  fastify.get('/ws/terminal/:sessionId', { websocket: true }, async (socket, request) => {
-    const user = (request as any).user
-    if (!user) {
-      socket.close(4001, 'Unauthorized')
-      return
-    }
+  fastify.get(
+    '/ws/terminal/:sessionId',
+    { websocket: true } as never,
+    async (socket: any, request: any) => {
+      const user = request.user
+      if (!user) {
+        socket.close(4001, 'Unauthorized')
+        return
+      }
 
-    const { sessionId } = request.params as { sessionId: string }
-    const prisma = (fastify as any).prisma as PrismaClient
+      const { sessionId } = request.params
+      const prisma = (fastify as any).prisma as PrismaClient
 
-    const session = await prisma.session.findUnique({ where: { id: sessionId } })
-    if (!session) {
-      socket.close(4004, 'Session not found')
-      return
-    }
-    if (session.userId !== user.id && user.role !== 'ADMIN') {
-      socket.close(4003, 'Forbidden')
-      return
-    }
+      const session = await prisma.session.findUnique({ where: { id: sessionId } })
+      if (!session) {
+        socket.close(4004, 'Session not found')
+        return
+      }
+      if (session.userId !== user.id && user.role !== 'ADMIN') {
+        socket.close(4003, 'Forbidden')
+        return
+      }
 
-    if (!session.ttydPort) {
-      socket.close(4005, 'Session not ready')
-      return
-    }
+      if (!session.ttydPort) {
+        socket.close(4005, 'Session not ready')
+        return
+      }
 
-    const ttydUrl = `ws://127.0.0.1:${session.ttydPort}/ws`
-    const ttydSocket = new WebSocket(ttydUrl, 'tty')
+      const ttydUrl = `ws://127.0.0.1:${session.ttydPort}/ws`
+      const ttydSocket = new WebSocket(ttydUrl, 'tty')
 
-    ttydSocket.on('message', (data) => {
-      socket.send(data)
-    })
+      ttydSocket.on('message', (data: WebSocket.Data) => {
+        if (typeof data === 'string') {
+          socket.send(data)
+        } else {
+          socket.send(Buffer.from(data as Buffer).toString())
+        }
+      })
 
-    socket.on('message', (data) => {
-      ttydSocket.send(data)
-    })
+      socket.on('message', (data: unknown) => {
+        if (typeof data === 'string') {
+          ttydSocket.send(data)
+        }
+      })
 
-    ttydSocket.on('close', () => {
-      socket.close()
-    })
+      ttydSocket.on('close', () => {
+        socket.close()
+      })
 
-    socket.on('close', () => {
-      ttydSocket.close()
-    })
+      socket.on('close', () => {
+        ttydSocket.close()
+      })
 
-    ttydSocket.on('error', () => {
-      socket.close(5000, 'ttyd connection error')
-    })
-  })
+      ttydSocket.on('error', () => {
+        socket.close(5000, 'ttyd connection error')
+      })
+    },
+  )
 }

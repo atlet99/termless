@@ -23,7 +23,8 @@ const ROOT = join(import.meta.dirname, '..')
 type CommentStyle = 'block' | 'hash'
 
 function styleForFile(fileName: string): CommentStyle | null {
-  if (fileName.endsWith('.ts') || fileName.endsWith('.tsx') || fileName.endsWith('.css')) return 'block'
+  if (fileName.endsWith('.ts') || fileName.endsWith('.tsx') || fileName.endsWith('.css'))
+    return 'block'
   if (fileName.endsWith('.sh') || fileName === 'Makefile' || fileName.endsWith('.mk')) return 'hash'
   return null
 }
@@ -46,20 +47,19 @@ const boilerplateLines = LICENSE_LINES.slice(appendixLineIdx)
 
 const COPYRIGHT_LINE = 'Copyright 2026 Abdurakhman Rakhmankulov'
 const CANONICAL_BODY = [COPYRIGHT_LINE, '', ...boilerplateLines.slice(1)].join('\n')
-const NORMALIZED_BODY = CANONICAL_BODY.split('\n').map((l) => l.trim()).filter((l) => l.length > 0).join('\n')
+const NORMALIZED_BODY = CANONICAL_BODY.split('\n')
+  .map((l) => l.trim())
+  .filter((l) => l.length > 0)
+  .join('\n')
 
 function buildHeader(style: CommentStyle): string {
   if (style === 'block') {
-    return '/**\n' +
-      CANONICAL_BODY
-        .split('\n')
-        .map((l) => (' * ' + l).trimEnd())
-        .join('\n') +
-      '\n */'
+    return `/**\n${CANONICAL_BODY.split('\n')
+      .map((l) => `* ${l}`.trimEnd())
+      .join('\n')}\n */`
   }
-  return CANONICAL_BODY
-    .split('\n')
-    .map((l) => ('# ' + l).trimEnd())
+  return CANONICAL_BODY.split('\n')
+    .map((l) => `# ${l}`.trimEnd())
     .join('\n')
 }
 
@@ -84,12 +84,17 @@ function normalizeBody(raw: string): string {
     .replace(/\/\*\*?\s*/, '')
     .replace(/\s*\*\//, '')
     .split('\n')
-    .map((l) => l.replace(/^\s*\*\s?/, '').replace(/^#\s?/, '').trim())
+    .map((l) =>
+      l
+        .replace(/^\s*\*\s?/, '')
+        .replace(/^#\s?/, '')
+        .trim(),
+    )
     .filter((l) => l.length > 0)
     .join('\n')
 }
 
-function headersMatch(existing: string, style: CommentStyle): boolean {
+function headersMatch(existing: string, _style: CommentStyle): boolean {
   return normalizeBody(existing) === NORMALIZED_BODY
 }
 
@@ -131,8 +136,14 @@ const ignorePatterns = [
 ]
 
 const SKIP_DIRS = new Set([
-  'node_modules', 'dist', '.turbo', '.git', 'coverage',
-  'backups', 'test_results', 'prisma',
+  'node_modules',
+  'dist',
+  '.turbo',
+  '.git',
+  'coverage',
+  'backups',
+  'test_results',
+  'prisma',
 ])
 
 const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', 'eslint.config.ts'])
@@ -146,7 +157,7 @@ function isIgnored(relPath: string): boolean {
     } else if (p.endsWith('/')) {
       if (parts.some((s) => s === p.slice(0, -1))) return true
     } else if (p.includes('*')) {
-      const re = new RegExp('^' + p.replace(/\*/g, '.*') + '$')
+      const re = new RegExp(`^${p.replace(/\*/g, '.*')}$`)
       if (re.test(fileName) || re.test(relPath)) return true
     } else {
       if (relPath === p || parts.some((s) => s === p)) return true
@@ -162,13 +173,21 @@ function shouldProcess(name: string): boolean {
 function walkDir(dir: string, root: string): string[] {
   const out: string[] = []
   let entries: string[]
-  try { entries = readdirSync(dir) } catch { return out }
+  try {
+    entries = readdirSync(dir)
+  } catch {
+    return out
+  }
 
   for (const name of entries) {
     if (SKIP_DIRS.has(name)) continue
     const full = join(dir, name)
     let st: ReturnType<typeof statSync>
-    try { st = statSync(full) } catch { continue }
+    try {
+      st = statSync(full)
+    } catch {
+      continue
+    }
     if (st.isDirectory()) {
       out.push(...walkDir(full, root))
     } else if (st.isFile() && shouldProcess(name) && !SKIP_FILES.has(name)) {
@@ -222,7 +241,7 @@ function main() {
     } else if (mode === 'add') {
       if (existing === null) {
         const header = buildHeader(style)
-        writeFileSync(filePath, header + '\n\n' + content)
+        writeFileSync(filePath, `${header}\n\n${content}`)
         results.push({ rel, action: 'added' })
       } else {
         results.push({ rel, action: 'wrong' })
@@ -230,7 +249,7 @@ function main() {
     } else {
       const body = existing !== null ? stripHeader(content, style) : content
       const header = buildHeader(style)
-      writeFileSync(filePath, header + '\n\n' + body)
+      writeFileSync(filePath, `${header}\n\n${body}`)
       results.push({ rel, action: existing !== null ? 'fixed' : 'added' })
     }
   }
@@ -238,7 +257,11 @@ function main() {
   // ── Report ──────────────────────────────────────────────────────────────
 
   const counts: Record<FileAction, number> = {
-    ok: 0, added: 0, fixed: 0, missing: 0, wrong: 0,
+    ok: 0,
+    added: 0,
+    fixed: 0,
+    missing: 0,
+    wrong: 0,
   }
 
   for (const r of results) {
@@ -268,7 +291,9 @@ function main() {
 
   if (mode === 'check') {
     if (problems > 0) {
-      console.error(`\x1b[1;31m✗\x1b[0m ${problems}/${total} files need attention (${counts.missing} missing, ${counts.wrong} wrong)`)
+      console.error(
+        `\x1b[1;31m✗\x1b[0m ${problems}/${total} files need attention (${counts.missing} missing, ${counts.wrong} wrong)`,
+      )
       console.error('  Run: \x1b[36mmake license-fix\x1b[0m to insert/replace headers')
       process.exit(1)
     }
@@ -280,7 +305,9 @@ function main() {
       console.log(`\x1b[1;32m✓\x1b[0m ${changed} file(s) updated`)
     }
     if (unresolved > 0) {
-      console.error(`\x1b[1;33m⚠\x1b[0m ${unresolved} file(s) had wrong headers — use \x1b[36mmake license-fix\x1b[0m to replace`)
+      console.error(
+        `\x1b[1;33m⚠\x1b[0m ${unresolved} file(s) had wrong headers — use \x1b[36mmake license-fix\x1b[0m to replace`,
+      )
     }
     if (changed === 0 && unresolved === 0) {
       console.log(`\x1b[1;32m✓\x1b[0m All ${total} files already correct — nothing to do`)

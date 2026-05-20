@@ -55,7 +55,9 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const redisUrl = process.env.REDIS_URL
+      if (!redisUrl) {
+        return reply.code(500).send({ error: 'Redis not configured' })
+      }
       const ttlSeconds = 8 * 60 * 60
       const token = await createSession(
         redisUrl,
@@ -63,7 +65,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
           id: user.id,
           email: user.email,
           displayName: user.displayName,
-          role: user.role as any,
+          role: user.role,
         },
         ttlSeconds,
       )

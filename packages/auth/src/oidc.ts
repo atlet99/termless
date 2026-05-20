@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { authorizationCodeGrantRequest, discovery } from 'openid-client'
+import { authorizationCodeGrant, discovery } from 'openid-client'
 
 export interface OidcConfig {
   issuerUrl: string
@@ -24,7 +24,7 @@ export interface OidcConfig {
 export interface OidcUser {
   sub: string
   email: string
-  name?: string
+  name?: string | undefined
 }
 
 let config: Awaited<ReturnType<typeof discovery>> | null = null
@@ -64,18 +64,18 @@ export async function handleCallback(
   codeVerifier: string,
 ): Promise<OidcUser> {
   const cfg = await getOidcConfig(oidcConfig)
-  const result = await authorizationCodeGrantRequest(
-    cfg,
-    oidcConfig.clientId,
-    oidcConfig.clientSecret,
-    new URL(oidcConfig.redirectUri),
+  const result = await (authorizationCodeGrant as any)(cfg, new URL(oidcConfig.redirectUri), {
+    client_id: oidcConfig.clientId,
     code,
-    codeVerifier,
-  )
+    code_verifier: codeVerifier,
+  })
   const claims = result.claims()
+  if (!claims) {
+    throw new Error('No claims in OIDC response')
+  }
   return {
     sub: claims.sub,
     email: claims.email as string,
-    name: claims.name as string | undefined,
+    name: typeof claims.name === 'string' ? claims.name : undefined,
   }
 }

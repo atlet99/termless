@@ -4,32 +4,32 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".":        "./src/index.ts",
-    "./base":   "./src/base.ts",
-    "./node":   "./src/node.ts",
-    "./react":  "./src/react.ts",
+    ".": "./src/index.ts",
+    "./base": "./src/base.ts",
+    "./node": "./src/node.ts",
+    "./react": "./src/react.ts",
     "./vitest": "./src/vitest.ts",
     "./security": "./src/security.ts"
   },
   "peerDependencies": {
-    "eslint":              ">=10.0.0",
-    "typescript":          ">=5.0.0",
-    "typescript-eslint":   ">=8.0.0"
+    "eslint": ">=10.0.0",
+    "typescript": ">=5.0.0",
+    "typescript-eslint": ">=8.0.0"
   },
   "devDependencies": {
-    "@eslint/js":                "^10.0.0",
-    "eslint":                    "^10.4.0",
-    "eslint-plugin-import-x":    "^4.16.2",
-    "eslint-plugin-jsx-a11y":    "^6.10.2",
-    "eslint-plugin-n":           "^18.0.1",
-    "eslint-plugin-no-secrets":  "^2.3.3",
-    "eslint-plugin-promise":     "^7.3.0",
-    "eslint-plugin-react":       "^7.37.5",
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.4.0",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-n": "^18.0.1",
+    "eslint-plugin-no-secrets": "^2.3.3",
+    "eslint-plugin-promise": "^7.3.0",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-sonarjs":     "^4.0.3",
-    "eslint-plugin-unicorn":     "^64.0.0",
+    "eslint-plugin-sonarjs": "^4.0.3",
+    "eslint-plugin-unicorn": "^64.0.0",
     "eslint-import-resolver-typescript": "^4.4.4",
-    "globals":                   "^17.6.0",
-    "typescript-eslint":         "^8.59.4"
+    "globals": "^17.6.0",
+    "typescript-eslint": "^8.59.4"
   }
 }

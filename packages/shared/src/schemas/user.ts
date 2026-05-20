@@ -30,6 +30,5 @@ export const updateUserRoleSchema = z.object({
 
 export const userListSchema = z.array(userSchema)
 
-export type Role = z.infer<typeof roleSchema>
 export type User = z.infer<typeof userSchema>
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>

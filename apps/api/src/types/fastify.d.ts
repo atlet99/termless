@@ -12,17 +12,10 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
-import fp from 'fastify-plugin'
+import type { AuthenticatedUser } from '@termless/shared'
 
-export const register = fp(async (fastify) => {
-  fastify.decorate(
-    'audit',
-    async (userId: string, action: string, metadata?: Record<string, unknown> | null) => {
-      const prisma = (fastify as any).prisma as PrismaClient
-      const data: Record<string, unknown> = { userId, action }
-      if (metadata) data.metadata = metadata
-      await prisma.auditLog.create({ data: data as any })
-    },
-  )
-})
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: AuthenticatedUser
+  }
+}

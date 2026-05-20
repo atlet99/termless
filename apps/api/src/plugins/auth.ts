@@ -29,7 +29,7 @@ export const register = fp(async (fastify) => {
     },
   })
 
-  fastify.decorateRequest('user', null)
+  fastify.decorateRequest('user', null as any)
 
   const redisUrl = process.env.REDIS_URL
 

@@ -57,7 +57,7 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
       }
 
       const role = (request as any).user?.role ?? 'VIEWER'
-      const allowedTags = ROLE_VISIBLE_TAGS[role] ?? ROLE_VISIBLE_TAGS.VIEWER
+      const allowedTags = ROLE_VISIBLE_TAGS[role] ?? []
 
       const filteredPaths: Record<string, unknown> = {}
       for (const [path, methods] of Object.entries(spec.paths ?? {})) {

@@ -94,12 +94,7 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
       const sel = term.getSelection()
       if (sel.length > 0) {
         navigator.clipboard.writeText(sel).catch(() => {
-          const ta = document.createElement('textarea')
-          ta.value = sel
-          document.body.appendChild(ta)
-          ta.select()
-          document.execCommand('copy')
-          document.body.removeChild(ta)
+          void 0 // clipboard copy fallback deprecated, ignore
         })
       }
     })
@@ -107,11 +102,16 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
     term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         e.preventDefault()
-        navigator.clipboard.readText().then((text) => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(`\x1b[200~${text}\x1b[201~`)
-          }
-        })
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(`\x1b[200~${text}\x1b[201~`)
+            }
+          })
+          .catch(() => {
+            // ignore clipboard read errors
+          })
         return false
       }
       return true

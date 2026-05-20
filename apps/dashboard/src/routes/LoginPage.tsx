@@ -16,6 +16,8 @@ import { useState } from 'react'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 
+import type { SyntheticEvent } from 'react'
+
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,7 +25,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
   const setAuth = useAuthStore((s) => s.setAuth)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: SyntheticEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -43,21 +45,31 @@ export function LoginPage() {
         <h1 className="text-2xl font-bold text-zinc-100 mb-6">Termless</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm text-zinc-400 mb-1">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+              }}
               className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-zinc-400 mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm text-zinc-400 mb-1">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value)
+              }}
               className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
