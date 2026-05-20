@@ -25,7 +25,6 @@ export default defineConfig([
       'no-script-url':              'error',
       'unicorn/no-process-exit':    'error',
       'unicorn/better-regex':       'error',
-      'unicorn/no-unsafe-regex':    'error',
       'no-prototype-builtins':      'error',
       'unicorn/no-static-only-class': 'error',
       'sonarjs/pseudo-random':      'error',

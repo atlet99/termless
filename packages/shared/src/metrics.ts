@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { Counter, Gauge, Histogram, collectDefaultMetrics, register } from 'prom-client'
+import { Counter, Gauge, Histogram, collectDefaultMetrics,  } from 'prom-client'
 
 collectDefaultMetrics({ prefix: 'termless_' })
 
@@ -51,7 +51,7 @@ export const terminalDuration = new Histogram({
   name: 'termless_terminal_session_duration_seconds',
   help: 'Terminal session duration in seconds',
   labelNames: ['tool'],
-  buckets: [60, 300, 600, 1800, 3600, 7200, 14400],
+  buckets: [60, 300, 600, 1800, 3600, 7200, 14_400],
 })
 
 export const workerProcessesTotal = new Gauge({
@@ -65,4 +65,6 @@ export const dbConnectionPoolSize = new Gauge({
   help: 'PostgreSQL connection pool active connections',
 })
 
-export { register }
+
+
+export {register} from 'prom-client'

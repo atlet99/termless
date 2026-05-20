@@ -50,7 +50,6 @@ export default defineConfig([
       parser: tseslint.parser,
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
@@ -239,10 +238,10 @@ export default defineConfig([
     rules: {
       'no-secrets/no-secrets': ['error', {
         tolerance: 4.2,
-        additionalPatterns: {
-          'Anthropic API Key': /sk-ant-[a-zA-Z0-9]{20,}/,
-          'OpenAI API Key':    /sk-[a-zA-Z0-9]{20,}/,
-          'JWT Secret':        /(?:jwt|session)[-_]?secret\s*[:=]\s*['"][^'"]{16,}/i,
+        additionalRegexes: {
+          'Anthropic API Key': 'sk-ant-[a-zA-Z0-9]{20,}',
+          'OpenAI API Key':    'sk-[a-zA-Z0-9]{20,}',
+          'JWT Secret':        '(?:jwt|session)[-_]?secret\\s*[:=]\\s*[\'"][^\'"]{16,}',
         },
       }],
     },
