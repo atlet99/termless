@@ -31,8 +31,12 @@ license-fix:  ## Insert or replace license headers to match canonical form
 	@node --import=tsx hack/license-header.ts fix
 	$(call log_ok, "License headers fixed")
 
-check-all: lint typecheck i18n-check license-check  ## Run all checks (lint, typecheck, i18n, license)
+check-all: lint typecheck i18n-check license-check peers-check  ## Run all checks (lint, typecheck, i18n, license, peers)
 	$(call log_section, "All checks passed!")
+
+peers-check:  ## Check for peer dependency issues
+	$(call log_step, "Checking peer dependencies")
+	@pnpm peers check
 
 fix-all: lint-fix license-fix  ## Auto-fix all auto-fixable issues (lint, format, license)
 	$(call log_section, "All fixes applied!")
