@@ -5,10 +5,22 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "import": "./dist/index.js", "types": "./dist/index.d.ts" },
-    "./schemas": { "import": "./dist/schemas/index.js", "types": "./dist/schemas/index.d.ts" },
-    "./types": { "import": "./dist/types/index.js", "types": "./dist/types/index.d.ts" },
-    "./metrics": { "import": "./dist/metrics.js", "types": "./dist/metrics.d.ts" }
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./schemas": {
+      "import": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./metrics": {
+      "import": "./dist/metrics.js",
+      "types": "./dist/metrics.d.ts"
+    }
   },
   "scripts": {
     "build": "tsc",
@@ -17,10 +29,12 @@
     "lint:fix": "eslint . --fix --max-warnings=0"
   },
   "dependencies": {
-    "zod": "^4.4.3",
-    "prom-client": "^15.1.0"
+    "prom-client": "^15.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "eslint": "^10.4.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.59.4"
   }
 }
