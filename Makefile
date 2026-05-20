@@ -1,3 +1,15 @@
+# Copyright 2026 Abdurakhman Rakhmankulov
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 
@@ -26,10 +38,11 @@ include makefiles/dev.mk
 include makefiles/lint.mk
 include makefiles/db.mk
 include makefiles/openapi.mk
+include makefiles/checks.mk
 
 ##@ Compound
 
-setup: install db-generate db-migrate db-seed  ## Full initial project setup
+setup: install db-generate db-migrate db-seed license-add  ## Full initial project setup
 	$(call log_section, "Termless setup complete!")
 	$(call log_info, "Run 'make up-dev' to start in dev mode")
 	$(call log_info, "Run 'make up' to start in production mode")

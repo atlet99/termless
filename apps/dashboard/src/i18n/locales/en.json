@@ -1,0 +1,28 @@
+{
+  "app": {
+    "title": "Termless"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signingIn": "Signing in...",
+    "email": "Email",
+    "password": "Password",
+    "loginFailed": "Login failed"
+  },
+  "dashboard": {
+    "activeSessions": "Active Sessions",
+    "noSessions": "No active sessions. Create one above.",
+    "connect": "Connect",
+    "delete": "Delete",
+    "back": "← Back",
+    "logout": "Logout"
+  },
+  "session": {
+    "newOpencode": "+ Opencode",
+    "newClaude": "+ Claude",
+    "newBash": "+ Bash"
+  },
+  "common": {
+    "error": "Error"
+  }
+}

@@ -12,24 +12,25 @@
  * limitations under the License.
  */
 
-import { z } from 'zod'
+import i18n from 'i18next'
+import { initReactI18next } from 'react-i18next'
+import en from './locales/en.json'
+import ru from './locales/ru.json'
 
-export const roleSchema = z.enum(['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER'])
+const savedLang = typeof localStorage !== 'undefined'
+  ? localStorage.getItem('termless_lang')
+  : null
 
-export const userSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  displayName: z.string().nullable(),
-  role: roleSchema,
-  createdAt: z.string(),
+i18n.use(initReactI18next).init({
+  resources: {
+    en: { translation: en },
+    ru: { translation: ru },
+  },
+  lng: savedLang ?? 'en',
+  fallbackLng: 'en',
+  interpolation: {
+    escapeValue: false,
+  },
 })
 
-export const updateUserRoleSchema = z.object({
-  role: roleSchema,
-})
-
-export const userListSchema = z.array(userSchema)
-
-export type Role = z.infer<typeof roleSchema>
-export type User = z.infer<typeof userSchema>
-export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>
+export default i18n

@@ -1,0 +1,28 @@
+{
+  "app": {
+    "title": "Termless"
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signingIn": "Вход...",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "loginFailed": "Ошибка входа"
+  },
+  "dashboard": {
+    "activeSessions": "Активные сессии",
+    "noSessions": "Нет активных сессий. Создайте новую выше.",
+    "connect": "Подключиться",
+    "delete": "Удалить",
+    "back": "← Назад",
+    "logout": "Выйти"
+  },
+  "session": {
+    "newOpencode": "+ Opencode",
+    "newClaude": "+ Claude",
+    "newBash": "+ Bash"
+  },
+  "common": {
+    "error": "Ошибка"
+  }
+}

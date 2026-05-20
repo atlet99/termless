@@ -45,3 +45,6 @@ pnpm-debug.log*
 
 # Misc
 *.local
+
+# Test results
+test_results/
