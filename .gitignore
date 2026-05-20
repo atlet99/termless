@@ -1,11 +1,47 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Turborepo
 .turbo/
+
+# Testing
 coverage/
+
+# Environment
 .env
-*.local
+.env.local
+.env.*.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
 *.tsbuildinfo
+
+# Prisma
+prisma/migrations/migration_lock.toml
+
+# Database backups
 backups/
+
+# OpenAPI exports
 openapi.json
 openapi.prev.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Misc
+*.local
