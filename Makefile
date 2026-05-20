@@ -29,15 +29,15 @@ include makefiles/openapi.mk
 
 ##@ Compound
 
-setup: install db-generate db-migrate db-seed  ## Полная начальная настройка проекта
+setup: install db-generate db-migrate db-seed  ## Full initial project setup
 	$(call log_section, "Termless setup complete!")
 	$(call log_info, "Run 'make up-dev' to start in dev mode")
 	$(call log_info, "Run 'make up' to start in production mode")
 
-ci: lint typecheck test openapi-ci  ## Полная проверка для CI pipeline
+ci: lint typecheck test openapi-ci  ## Full CI pipeline check
 	$(call log_section, "CI checks passed!")
 
-check-env:  ## Проверить наличие обязательных переменных окружения
+check-env:  ## Check required environment variables
 	$(call log_step, "Checking environment")
 	@[ -f .env ] || ($(call log_error, ".env file not found. Copy from .env.example"); exit 1)
 	@for var in AUTH_MODE DATABASE_URL REDIS_URL ANTHROPIC_API_KEY; do \
@@ -46,14 +46,14 @@ check-env:  ## Проверить наличие обязательных пер
 	done
 	$(call log_ok, "Environment OK")
 
-version:  ## Показать версии инструментов
+version:  ## Show tool versions
 	@printf "$(BWHITE)Tool versions:$(RESET)\n"
 	@printf "  Node.js : $(CYAN)%s$(RESET)\n" "$$(node --version)"
 	@printf "  pnpm    : $(CYAN)%s$(RESET)\n" "$$(pnpm --version)"
 	@printf "  Docker  : $(CYAN)%s$(RESET)\n" "$$(docker --version | cut -d' ' -f3 | tr -d ',')"
 	@printf "  Git     : $(CYAN)%s$(RESET)\n" "$$(git --version | cut -d' ' -f3)"
 
-token:  ## Сгенерировать безопасный случайный токен (32 байта)
+token:  ## Generate a secure random token (32 bytes)
 	@printf "$(BGREEN)%s$(RESET)\n" "$$(openssl rand -hex 32)"
 
 .PHONY: setup ci check-env version token

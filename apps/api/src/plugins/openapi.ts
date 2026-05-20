@@ -10,7 +10,8 @@ export const register = fp(async (fastify) => {
         title: 'Termless API',
         description: 'Centralized terminal hub for opencode and claude code',
         version: '1.0.0',
-        license: { name: 'Apache 2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0' },
+        license: { name: 'Apache 2.0', url: 'https://github.com/atlet99/termless/blob/main/LICENSE' },
+        contact: { name: 'Termless', url: 'https://github.com/atlet99/termless' },
       },
       servers: [
         { url: process.env.API_PUBLIC_URL ?? '/api', description: 'Current server' },

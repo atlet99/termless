@@ -24,7 +24,7 @@
     "typescript": "^5.8.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@biomejs/biome", "@prisma/engines", "argon2", "esbuild", "prisma"]
+    "onlyBuiltDependencies": ["@biomejs/biome", "@prisma/engines", "argon2", "esbuild", "prisma", "unrs-resolver"]
   },
   "packageManager": "pnpm@10.12.1",
   "engines": {

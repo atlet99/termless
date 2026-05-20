@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-help:  ## Показать эту справку
+help:  ## Show this help
 	@printf "\n$(BWHITE)Termless$(RESET) — dev toolkit\n\n"
 	@grep -E '^[a-zA-Z_0-9-]+:.*?## .*$$|^##@' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; \
