@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.turbo/
+coverage/
+.env
+*.local
+.DS_Store
+*.tsbuildinfo
+backups/
+openapi.json
+openapi.prev.json

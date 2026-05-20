@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: deps
+    command: ["pnpm", "turbo", "run", "dev", "--filter=@termless/api"]
+    volumes:
+      - .:/app
+      - workspace:/workspace
+      - /etc/sudoers.d:/etc/sudoers.d
+    environment:
+      - NODE_ENV=development
+    env_file: .env
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infra/docker/dashboard.Dockerfile
+      target: deps
+    command: ["pnpm", "turbo", "run", "dev", "--filter=@termless/dashboard"]
+    volumes:
+      - .:/app
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
