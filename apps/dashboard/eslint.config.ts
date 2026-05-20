@@ -1,12 +1,12 @@
 import { defineConfig } from 'eslint/config'
-import { baseConfig, reactConfig, vitestConfig, securityConfig } from '@termless/eslint-config'
+import { baseConfig, reactConfig, securityConfig } from '@termless/eslint-config'
 import unicorn from 'eslint-plugin-unicorn'
 import n from 'eslint-plugin-n'
 
 export default defineConfig([
   ...baseConfig,
   ...reactConfig,
-  ...vitestConfig,
+  // vitestConfig temporarily disabled - waiting for eslint-plugin-vitest to support typescript-eslint v8
   ...securityConfig,
   {
     name: 'termless/dashboard-overrides',

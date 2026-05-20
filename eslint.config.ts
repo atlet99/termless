@@ -1,5 +1,5 @@
 import { defineConfig } from 'eslint/config'
-import { baseConfig, nodeConfig, reactConfig, vitestConfig, securityConfig } from '@termless/eslint-config'
+import { baseConfig, nodeConfig, reactConfig, securityConfig } from '@termless/eslint-config'
 
 export default defineConfig([
   {
@@ -17,7 +17,7 @@ export default defineConfig([
   ...baseConfig,
   ...nodeConfig,
   ...reactConfig,
-  ...vitestConfig,
+  // vitestConfig temporarily disabled - waiting for eslint-plugin-vitest to support typescript-eslint v8
   ...securityConfig,
   {
     name: 'termless/root-configs',
