@@ -1,3 +1,10 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+allowBuilds:
+  '@biomejs/biome': true
+  '@prisma/engines': true
+  argon2: true
+  esbuild: true
+  prisma: true
+  unrs-resolver: true
