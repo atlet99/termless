@@ -16,17 +16,23 @@ lint:  ## Run ESLint (type-aware) + Biome (format)
 	$(call log_step, "Running ESLint")
 	@pnpm turbo run lint
 	$(call log_step, "Running Biome format check")
-	@pnpm biome check .
+	@pnpm exec biome check .
 	$(call log_ok, "All checks passed")
 
 lint-fix:  ## Auto-fix ESLint + Biome issues
 	$(call log_step, "Fixing ESLint issues")
 	@pnpm turbo run lint:fix
 	$(call log_step, "Fixing Biome issues (includes format)")
-	@pnpm biome check --write .
+	@pnpm exec biome check --write .
 	$(call log_ok, "All fixes applied")
 
+biome:  ## Run Biome check (lint + format)
+	@pnpm exec biome check .
+
+biome-fix:  ## Auto-fix Biome issues
+	@pnpm exec biome check --write .
+
 format-only:  ## Format code only (Biome formatter)
-	@pnpm biome format --write .
+	@pnpm exec biome format --write .
 
 .PHONY: lint lint-fix biome biome-fix format-only

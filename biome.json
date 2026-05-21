@@ -43,6 +43,7 @@
       "node_modules",
       "dist",
       ".turbo",
+      ".git",
       "coverage",
       "*.min.js",
       "pnpm-lock.yaml",
