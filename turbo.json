@@ -6,20 +6,13 @@
     "typecheck": { "dependsOn": ["^build"] },
     "lint": {
       "dependsOn": [],
-      "inputs": [
-        "src/**/*.{ts,tsx,js,jsx}",
-        "eslint.config.ts",
-        "../../packages/eslint-config/src/**"
-      ],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "eslint.config.ts", "packages/eslint-config/src/**"],
       "outputs": [],
       "cache": true
     },
     "check": {
       "dependsOn": [],
-      "inputs": [
-        "src/**/*.{ts,tsx,js,jsx,json,css}",
-        "biome.json"
-      ],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx,json,css}", "biome.json"],
       "outputs": [],
       "cache": true
     },

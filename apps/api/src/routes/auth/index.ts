@@ -37,7 +37,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       const prisma = (fastify as any).prisma as PrismaClient
 
       const user = await prisma.user.findUnique({ where: { email: body.email } })
-      if (!user || !user.passwordHash) {
+      if (!user?.passwordHash) {
         authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
         return reply.code(401).send({ error: 'Invalid credentials' })
       }

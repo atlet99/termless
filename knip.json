@@ -1,9 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "ignoreDependencies": [
-    "@types/pg",
-    "@types/i18next"
-  ],
+  "ignoreDependencies": ["@types/pg", "@types/i18next"],
   "workspaces": {
     "apps/api": {
       "entry": ["src/index.ts"],

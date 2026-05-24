@@ -14,6 +14,9 @@
 
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import cors from '@fastify/cors'
+import rateLimit from '@fastify/rate-limit'
+import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import { register as registerAudit } from './plugins/audit.js'
 import { register as registerAuth } from './plugins/auth.js'
@@ -47,6 +50,18 @@ async function main() {
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
   })
   fastify.decorate('prisma', prisma)
+
+  await fastify.register(cors, {
+    origin: process.env.NODE_ENV === 'production' ? (process.env.API_PUBLIC_URL ?? false) : true,
+    credentials: true,
+  })
+
+  await fastify.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  })
+
+  await fastify.register(websocket)
 
   await registerHelmet(fastify)
   await registerOpenapi(fastify)

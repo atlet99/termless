@@ -18,10 +18,16 @@ import fp from 'fastify-plugin'
 export const register = fp(async (fastify) => {
   fastify.decorate(
     'audit',
-    async (userId: string, action: string, metadata?: Record<string, unknown> | null) => {
+    async (
+      userId: string,
+      action: string,
+      metadata?: Record<string, unknown> | null,
+      ip?: string,
+    ) => {
       const prisma = (fastify as any).prisma as PrismaClient
       const data: Record<string, unknown> = { userId, action }
       if (metadata) data.metadata = metadata
+      if (ip) data.ip = ip
       await prisma.auditLog.create({ data: data as any })
     },
   )

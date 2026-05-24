@@ -12,10 +12,21 @@
  * limitations under the License.
  */
 
+import type { PrismaClient } from '@prisma/client'
 import type { AuthenticatedUser } from '@termless/shared'
 
 declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthenticatedUser
+  }
+
+  interface FastifyInstance {
+    prisma: PrismaClient
+    audit: (
+      userId: string,
+      action: string,
+      metadata?: Record<string, unknown> | null,
+      ip?: string,
+    ) => Promise<void>
   }
 }

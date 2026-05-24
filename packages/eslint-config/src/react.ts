@@ -14,6 +14,9 @@
 
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
+import reactPlugin from 'eslint-plugin-react'
+import reactHooks from 'eslint-plugin-react-hooks'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
@@ -35,8 +38,27 @@ export default defineConfig([
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      react: reactPlugin,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
+    },
+    settings: {
+      react: { version: 'detect' },
     },
     rules: {
+      ...reactPlugin.configs.recommended.rules,
+      ...reactPlugin.configs['jsx-runtime'].rules,
+      ...reactHooks.configs.recommended.rules,
+      ...jsxA11y.configs.recommended.rules,
+
+      'react/prop-types': 'off',
+      'react/display-name': 'error',
+      'react/no-danger': 'error',
+      'react/no-array-index-key': 'warn',
+      'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
+      'react/jsx-no-target-blank': ['error', { enforceDynamicLinks: 'always' }],
+      'jsx-a11y/no-autofocus': 'warn',
+
       '@typescript-eslint/no-misused-promises': [
         'error',
         { checksVoidReturn: { attributes: false } },

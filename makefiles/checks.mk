@@ -68,6 +68,18 @@ hadolint:  ## Check Dockerfiles with Hadolint
 	@find . -name 'Dockerfile*' -not -path '*/node_modules/*' -exec hadolint {} +
 	$(call log_ok, "Hadolint passed")
 
+yamllint:  ## Check YAML files with Yamllint
+	$(call log_step, "Running Yamllint")
+	@command -v yamllint >/dev/null 2>&1 || ($(call log_error, "yamllint not found. Install: pip3 install yamllint"); exit 1)
+	@yamllint -c .yamllint.yaml .
+	$(call log_ok, "Yamllint passed")
+
+secrets-scan:  ## Scan for secrets with Gitleaks
+	$(call log_step, "Scanning for secrets")
+	@command -v gitleaks >/dev/null 2>&1 || ($(call log_error, "gitleaks not found. Install: brew install gitleaks"); exit 1)
+	@gitleaks detect --source . --redact --verbose
+	$(call log_ok, "No secrets found")
+
 check-all: lint typecheck i18n-check license-check peers-check docs-lint  ## Run all checks (lint, typecheck, i18n, license, peers, docs)
 	$(call log_section, "All checks passed!")
 
@@ -82,4 +94,4 @@ peers-check:  ## Check for peer dependency issues
 fix-all: lint-fix license-fix  ## Auto-fix all auto-fixable issues (lint, format, license)
 	$(call log_section, "All fixes applied!")
 
-.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe shellcheck hadolint check-all peers-check fix-all
+.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe shellcheck hadolint yamllint secrets-scan check-all peers-check fix-all
