@@ -16,6 +16,6 @@
       "outputs": [],
       "cache": true
     },
-    "test": { "dependsOn": ["^build"], "outputs": ["coverage/**"] }
+    "test": { "dependsOn": ["^build"], "outputs": [] }
   }
 }

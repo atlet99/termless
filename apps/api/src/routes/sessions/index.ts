@@ -63,9 +63,11 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       let systemUid = user.systemUid
 
       if (!systemUid) {
+        /* eslint-disable @typescript-eslint/naming-convention -- Prisma aggregate API */
         const maxResult = await prisma.user.aggregate({
           _max: { systemUid: true },
         })
+        /* eslint-enable @typescript-eslint/naming-convention */
         const nextUid = Math.max(
           SYSTEM_UID_MIN,
           (maxResult._max.systemUid || SYSTEM_UID_MIN - 1) + 1,

@@ -15,6 +15,7 @@
 import { type ChildProcess, spawn, type SpawnOptions } from 'node:child_process'
 
 import { workerProcessesTotal } from '@termless/shared'
+
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:ttyd')
