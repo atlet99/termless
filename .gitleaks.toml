@@ -1,0 +1,15 @@
+title = "termless-gitleaks-config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "global allowlist"
+paths = [
+  '''pnpm-lock.yaml''',
+  '''package-lock.json''',
+  '''yarn.lock''',
+  '''dist/''',
+  '''coverage/''',
+  '''node_modules/'''
+]

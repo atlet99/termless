@@ -15,12 +15,15 @@
 import type { PrismaClient } from '@prisma/client'
 import { createSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
-import { startTtyd } from '@termless/worker'
+import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
 
+const SYSTEM_UID_MIN = 2000
+const SYSTEM_UID_MAX = 60000
+
 export async function registerSessionRoutes(fastify: FastifyInstance) {
-  const workspaceRoot = process.env.WORKSPACE_ROOT
+  const workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace'
 
   fastify.get(
     '/api/v1/sessions',
@@ -56,29 +59,58 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         return reply.code(429).send({ error: 'Session limit reached' })
       }
 
+      let systemUid = user.systemUid
+
+      if (!systemUid) {
+        const maxResult = await prisma.user.aggregate({
+          _max: { systemUid: true },
+        })
+        const nextUid = Math.max(
+          SYSTEM_UID_MIN,
+          (maxResult._max.systemUid || SYSTEM_UID_MIN - 1) + 1,
+        )
+        if (nextUid > SYSTEM_UID_MAX) {
+          return reply.code(503).send({ error: 'User capacity exhausted' })
+        }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { systemUid: nextUid },
+        })
+        systemUid = nextUid
+      }
+
+      let workspacePath = `${workspaceRoot}/termless-user-${systemUid}`
+
+      if (body.workspaceId) {
+        const workspace = await prisma.workspace.findFirst({
+          where: { id: body.workspaceId, userId: user.id },
+        })
+        if (workspace?.path.startsWith(workspaceRoot)) {
+          workspacePath = workspace.path
+        }
+      }
+
+      await provisionOsUser(systemUid, workspacePath, user.role)
+
       const session = await prisma.session.create({
         data: {
           userId: user.id,
           tool: body.tool,
-          tmuxSession: `termless-${user.id}-${body.tool}-${Date.now()}`,
+          tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
         },
       })
 
-      const workspacePath = `${workspaceRoot}/termless-user-${user.id}`
-
-      if (user.systemUid) {
-        const port = 10000 + Math.floor(Math.random() * 50000)
-        startTtyd({
-          port,
-          userId: user.systemUid,
-          tmuxSession: session.tmuxSession,
-          workspacePath,
-        })
-        await prisma.session.update({
-          where: { id: session.id },
-          data: { ttydPort: port },
-        })
-      }
+      const port = 10000 + Math.floor(Math.random() * 50000)
+      startTtyd({
+        port,
+        userId: systemUid,
+        tmuxSession: session.tmuxSession,
+        workspacePath,
+      })
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { ttydPort: port },
+      })
 
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
       ;(fastify as any).audit?.(user.id, 'session.create', { tool: body.tool }, request.ip)

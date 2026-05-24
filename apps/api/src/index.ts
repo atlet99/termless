@@ -13,6 +13,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
 import Fastify from 'fastify'
 import { register as registerAudit } from './plugins/audit.js'
 import { register as registerAuth } from './plugins/auth.js'
@@ -42,7 +43,9 @@ async function main() {
   }
   const fastify = Fastify({ logger: loggerConfig })
 
-  const prisma = new PrismaClient()
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  })
   fastify.decorate('prisma', prisma)
 
   await registerHelmet(fastify)

@@ -48,3 +48,6 @@ pnpm-debug.log*
 
 # Test results
 test_results/
+
+# Knip
+.knip/

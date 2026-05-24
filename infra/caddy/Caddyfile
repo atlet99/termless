@@ -1,5 +1,24 @@
 # Replace hub.example.com with your actual domain
 hub.example.com {
+    handle /api/* {
+        reverse_proxy api:3000 {
+            transport http {
+                read_timeout  3600s
+                write_timeout 3600s
+            }
+            header_up X-Real-IP        {remote_host}
+            header_up X-Forwarded-Proto https
+        }
+    }
+
+    handle /ws/* {
+        reverse_proxy api:3000
+    }
+
+    handle {
+        reverse_proxy dashboard:3001
+    }
+
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options    "nosniff"
@@ -10,12 +29,8 @@ hub.example.com {
         -Server
     }
 
-    reverse_proxy localhost:3000 {
-        transport http {
-            read_timeout  3600s
-            write_timeout 3600s
-        }
-        header_up X-Real-IP        {remote_host}
-        header_up X-Forwarded-Proto https
+    log {
+        output stdout
+        format console
     }
 }

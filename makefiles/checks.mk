@@ -31,7 +31,32 @@ license-fix:  ## Insert or replace license headers to match canonical form
 	@node --import=tsx hack/license-header.ts fix
 	$(call log_ok, "License headers fixed")
 
-check-all: lint typecheck i18n-check license-check peers-check  ## Run all checks (lint, typecheck, i18n, license, peers)
+knip:  ## Find unused files, dependencies and exports
+	$(call log_step, "Running Knip (dead code detection)")
+	@pnpm knip || true
+	$(call log_ok, "Knip check done")
+
+docs-lint:  ## Lint Markdown documentation
+	$(call log_step, "Linting Markdown docs")
+	@pnpm docs:lint
+	$(call log_ok, "Docs lint passed")
+
+packages-sort:  ## Sort package.json files consistently
+	$(call log_step, "Sorting package.json files")
+	@pnpm packages:sort
+	$(call log_ok, "Package.json files sorted")
+
+packages-audit:  ## Audit dependencies for vulnerabilities
+	$(call log_step, "Auditing dependencies")
+	@pnpm packages:audit || true
+	$(call log_ok, "Audit done")
+
+packages-dedupe:  ## Check for duplicate dependencies
+	$(call log_step, "Checking duplicate dependencies")
+	@pnpm packages:dedupe || true
+	$(call log_ok, "Dedupe check done")
+
+check-all: lint typecheck i18n-check license-check peers-check docs-lint  ## Run all checks (lint, typecheck, i18n, license, peers, docs)
 	$(call log_section, "All checks passed!")
 
 peers-check:  ## Check for peer dependency issues
@@ -45,4 +70,4 @@ peers-check:  ## Check for peer dependency issues
 fix-all: lint-fix license-fix  ## Auto-fix all auto-fixable issues (lint, format, license)
 	$(call log_section, "All fixes applied!")
 
-.PHONY: i18n-check license-check license-add license-fix check-all fix-all
+.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe check-all peers-check fix-all

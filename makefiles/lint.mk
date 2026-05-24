@@ -35,4 +35,7 @@ biome-fix:  ## Auto-fix Biome issues
 format-only:  ## Format code only (Biome formatter)
 	@pnpm exec biome format --write .
 
-.PHONY: lint lint-fix biome biome-fix format-only
+format-check:  ## Check formatting without changes
+	@pnpm exec biome format .
+
+.PHONY: lint lint-fix biome biome-fix format-only format-check

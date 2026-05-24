@@ -6,19 +6,33 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "test": "turbo run test",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "lint": "turbo run lint",
     "lint:root": "eslint .",
     "lint:fix": "turbo run lint:fix",
-    "format": "biome format --write .",
     "biome": "biome check .",
     "biome:fix": "biome check --write .",
+    "check": "turbo run check",
+    "check:root": "biome check .",
+    "typecheck": "turbo run typecheck",
+    "knip": "knip",
+    "docs:lint": "markdownlint-cli2 \"**/*.md\" \"#**/node_modules/**\"",
+    "packages:sort": "sort-package-json \"package.json\" \"apps/*/package.json\" \"packages/*/package.json\"",
+    "packages:audit": "pnpm audit --audit-level high",
+    "packages:dedupe": "pnpm dedupe --check",
     "postinstall": "prisma generate"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.0.0",
     "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
+    "knip": "^6.14.2",
+    "lefthook": "^2.1.8",
+    "markdownlint-cli2": "^0.22.1",
     "prisma": "^7.8.0",
+    "sort-package-json": "^3.6.1",
     "tsx": "^4.22.3",
     "turbo": "^2.5.0",
     "typescript": "^5.8.3"
@@ -28,6 +42,9 @@
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@prisma/client": "^7.8.0"
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@types/pg": "^8.20.0",
+    "pg": "^8.21.0"
   }
 }

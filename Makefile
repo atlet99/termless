@@ -46,8 +46,11 @@ setup: install db-generate db-migrate db-seed license-add  ## Full initial proje
 	$(call log_info, "Run 'make up-dev' to start in dev mode")
 	$(call log_info, "Run 'make up' to start in production mode")
 
-ci: lint typecheck test openapi-ci  ## Full CI pipeline check
+ci: lint typecheck test openapi-ci docs-lint knip  ## Full CI pipeline check
 	$(call log_section, "CI checks passed!")
+
+ci-security: packages-audit  ## Security-focused CI checks
+	$(call log_section, "Security checks passed!")
 
 check-env:  ## Check required environment variables
 	$(call log_step, "Checking environment")
@@ -68,4 +71,4 @@ version:  ## Show tool versions
 token:  ## Generate a secure random token (32 bytes)
 	@printf "$(BGREEN)%s$(RESET)\n" "$$(openssl rand -hex 32)"
 
-.PHONY: setup ci check-env version token
+.PHONY: setup ci ci-security check-env version token
