@@ -84,4 +84,38 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       return { id: user.id, role: user.role }
     },
   )
+
+  fastify.get(
+    '/api/v1/admin/audit-logs',
+    {
+      schema: { tags: ['admin'], description: 'List audit logs (ADMIN only)' },
+      preHandler: [requireRole('ADMIN')],
+    },
+    async (request) => {
+      const prisma = fastify.prisma
+      const query = request.query as Record<string, string | undefined>
+      const page = Math.max(1, Number(query.page) || 1)
+      const limit = Math.min(100, Math.max(1, Number(query.limit) || 50))
+      const offset = (page - 1) * limit
+
+      const where: Record<string, unknown> = {}
+      if (query.userId) where.userId = query.userId
+      if (query.action) where.action = query.action
+
+      const [logs, total] = await Promise.all([
+        prisma.auditLog.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.auditLog.count({ where }),
+      ])
+
+      return {
+        data: logs,
+        pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      }
+    },
+  )
 }

@@ -18,12 +18,14 @@ export const toolSchema = z.enum(['OPENCODE', 'CLAUDE', 'BASH'])
 
 export const createSessionSchema = z.object({
   tool: toolSchema,
+  name: z.string().max(100).optional(),
   workspaceId: z.string().optional(),
 })
 
 export const sessionSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  name: z.string().nullable(),
   tool: toolSchema,
   tmuxSession: z.string(),
   ttydPort: z.number().nullable(),

@@ -47,6 +47,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     {
       schema: { tags: ['sessions'], description: 'Create terminal session' },
       preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
       const body = createSessionSchema.parse(request.body)
@@ -98,6 +99,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       const session = await prisma.session.create({
         data: {
           userId: user.id,
+          name: body.name ?? null,
           tool: body.tool,
           tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
         },

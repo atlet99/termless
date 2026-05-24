@@ -52,6 +52,12 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
           authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
           return reply.code(401).send({ error: 'Invalid TOTP code' })
         }
+      } else if (user.role === 'ADMIN' || user.role === 'OPERATOR') {
+        authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
+        return reply.code(403).send({
+          error: 'TOTP setup required',
+          message: 'ADMIN and OPERATOR roles require 2FA. Please set up TOTP first.',
+        })
       }
 
       if (!redisUrl) {
@@ -115,6 +121,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     '/auth/oidc/start',
     {
       schema: { tags: ['auth'], description: 'Start OIDC flow' },
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     },
     async (_request, reply) => {
       return reply.code(501).send({ error: 'OIDC not yet configured' })

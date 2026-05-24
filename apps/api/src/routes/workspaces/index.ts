@@ -39,6 +39,7 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
     {
       schema: { tags: ['workspaces'], description: 'Create workspace' },
       preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
       const body = createWorkspaceSchema.parse(request.body)
