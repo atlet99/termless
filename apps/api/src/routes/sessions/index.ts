@@ -149,6 +149,21 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       }
 
       await prisma.session.delete({ where: { id } })
+
+      const remainingSessions = await prisma.session.count({
+        where: { userId: session.userId },
+      })
+      if (remainingSessions === 0) {
+        const sessionUser = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { systemUid: true },
+        })
+        if (sessionUser?.systemUid) {
+          const { removeSudoersFile } = await import('@termless/worker')
+          await removeSudoersFile(sessionUser.systemUid)
+        }
+      }
+
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
       ;(fastify as any).audit?.(user.id, 'session.delete', { sessionId: id }, request.ip)
 

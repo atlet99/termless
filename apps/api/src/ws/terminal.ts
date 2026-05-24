@@ -13,15 +13,30 @@
  */
 
 import type { PrismaClient } from '@prisma/client'
+import { getSession } from '@termless/auth'
+import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
 
 export async function registerTerminalWs(fastify: FastifyInstance) {
+  const redisUrl = process.env.REDIS_URL
+
   fastify.get(
     '/ws/terminal/:sessionId',
     { websocket: true } as never,
     async (socket: any, request: any) => {
-      const user = request.user
+      let user = request.user
+
+      if (!user && redisUrl) {
+        const subprotocol = request.headers['sec-websocket-protocol']
+        if (subprotocol?.startsWith('bearer.')) {
+          const token = subprotocol.slice(7)
+          if (token) {
+            user = await getSession(redisUrl, token)
+          }
+        }
+      }
+
       if (!user) {
         socket.close(4001, 'Unauthorized')
         return
@@ -48,6 +63,11 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       const ttydUrl = `ws://127.0.0.1:${session.ttydPort}/ws`
       const ttydSocket = new WebSocket(ttydUrl, 'tty')
 
+      terminalConnectionsTotal.inc({ tool: session.tool })
+      const connectionStart = Date.now()
+
+      socket.send(JSON.stringify({ type: 'connected', sessionId }))
+
       ttydSocket.on('message', (data: WebSocket.Data) => {
         if (typeof data === 'string') {
           socket.send(data)
@@ -67,6 +87,8 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       })
 
       socket.on('close', () => {
+        const durationSeconds = (Date.now() - connectionStart) / 1000
+        terminalDuration.observe({ tool: session.tool }, durationSeconds)
         ttydSocket.close()
       })
 

@@ -100,6 +100,19 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
   )
 
   fastify.get(
+    '/auth/me',
+    {
+      schema: { tags: ['auth'], description: 'Get current user from session' },
+    },
+    async (request, reply) => {
+      if (!request.user) {
+        return reply.code(401).send({ error: 'Not authenticated' })
+      }
+      return { user: request.user }
+    },
+  )
+
+  fastify.get(
     '/auth/oidc/start',
     {
       schema: { tags: ['auth'], description: 'Start OIDC flow' },

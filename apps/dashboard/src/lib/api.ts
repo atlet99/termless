@@ -38,6 +38,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+  getMe: () => fetchApi<{ user: any }>('/auth/me'),
+
   getSessions: () => fetchApi<any[]>('/api/v1/sessions'),
 
   createSession: (tool: string) =>

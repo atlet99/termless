@@ -12,12 +12,20 @@
  * limitations under the License.
  */
 
+import { useEffect } from 'react'
 import { DashboardPage } from './routes/DashboardPage'
 import { LoginPage } from './routes/LoginPage'
 import { useAuthStore } from './stores/auth'
 
 export function App() {
   const token = useAuthStore((s) => s.token)
+  const hydrate = useAuthStore((s) => s.hydrate)
+
+  useEffect(() => {
+    if (token) {
+      void hydrate()
+    }
+  }, [token, hydrate])
 
   if (!token) {
     return <LoginPage />

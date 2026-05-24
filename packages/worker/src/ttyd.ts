@@ -14,6 +14,7 @@
 
 import { type ChildProcess, spawn, type SpawnOptions } from 'node:child_process'
 
+import { workerProcessesTotal } from '@termless/shared'
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:ttyd')
@@ -84,9 +85,11 @@ export function startTtyd(options: TtydOptions): ChildProcess {
   child.on('exit', (code) => {
     logger.info({ port, code }, 'ttyd exited')
     activeProcesses.delete(port)
+    workerProcessesTotal.dec({ tool: 'ttyd' })
   })
 
   activeProcesses.set(port, child)
+  workerProcessesTotal.inc({ tool: 'ttyd' })
   return child
 }
 
@@ -96,6 +99,7 @@ export function stopTtyd(port: number): void {
     logger.info({ port }, 'Stopping ttyd')
     child.kill('SIGTERM')
     activeProcesses.delete(port)
+    workerProcessesTotal.dec({ tool: 'ttyd' })
   }
 }
 
@@ -105,6 +109,7 @@ export function stopAllTtyd(): void {
     child.kill('SIGTERM')
   }
   activeProcesses.clear()
+  workerProcessesTotal.set({ tool: 'ttyd' }, 0)
 }
 
 export function getActivePorts(): number[] {

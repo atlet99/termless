@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
 import { promisify } from 'node:util'
 
@@ -20,7 +20,7 @@ import { createLogger } from './logger.js'
 import { createSudoersFile } from './sudoers.js'
 
 const logger = createLogger('worker:provision')
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 function usernameFor(systemUid: number): string {
   return `termless-user-${String(systemUid)}`
@@ -36,15 +36,15 @@ export async function provisionOsUser(
   logger.info({ username, systemUid, workspacePath }, 'Provisioning OS user')
 
   try {
-    await execAsync(`id ${username}`)
+    await execFileAsync('id', [username])
     logger.info({ username }, 'OS user already exists')
   } catch {
-    await execAsync(`useradd -u ${String(systemUid)} -m -s /bin/bash ${username}`)
+    await execFileAsync('useradd', ['-u', String(systemUid), '-m', '-s', '/bin/bash', username])
     logger.info({ username, systemUid }, 'Created OS user')
   }
 
   await mkdir(workspacePath, { recursive: true })
-  await execAsync(`chown ${username}:${username} ${workspacePath}`)
+  await execFileAsync('chown', [`${username}:${username}`, workspacePath])
   logger.info({ workspacePath, username }, 'Workspace directory ready')
 
   await createSudoersFile(systemUid, role)
