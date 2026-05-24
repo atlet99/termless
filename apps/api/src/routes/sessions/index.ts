@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { createSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
 import { provisionOsUser, startTtyd } from '@termless/worker'
@@ -32,8 +31,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       preHandler: [requireRole('DEVELOPER')],
     },
     async (request) => {
-      const prisma = (fastify as any).prisma as PrismaClient
-      const userId = (request as any).user.id
+      const prisma = fastify.prisma
+      const userId = request.user!.id
       const sessions = await prisma.session.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -50,8 +49,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const body = createSessionSchema.parse(request.body)
-      const user = (request as any).user
-      const prisma = (fastify as any).prisma as PrismaClient
+      const user = request.user!
+      const prisma = fastify.prisma
 
       const maxSessions = Number(process.env.MAX_SESSIONS_PER_USER) || 5
       const currentCount = await prisma.session.count({ where: { userId: user.id } })
@@ -113,7 +112,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       })
 
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
-      ;(fastify as any).audit?.(user.id, 'session.create', { tool: body.tool }, request.ip)
+      void fastify.audit(user.id, 'session.create', { tool: body.tool }, request.ip)
 
       return {
         id: session.id,
@@ -132,8 +131,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
-      const user = (request as any).user
-      const prisma = (fastify as any).prisma as PrismaClient
+      const user = request.user!
+      const prisma = fastify.prisma
 
       const session = await prisma.session.findUnique({ where: { id } })
       if (!session) {
@@ -165,7 +164,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       }
 
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
-      ;(fastify as any).audit?.(user.id, 'session.delete', { sessionId: id }, request.ip)
+      void fastify.audit(user.id, 'session.delete', { sessionId: id }, request.ip)
 
       return { ok: true }
     },

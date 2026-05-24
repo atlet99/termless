@@ -16,6 +16,11 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from '@fastify/type-provider-zod'
 import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import { register as registerAudit } from './plugins/audit.js'
@@ -44,7 +49,9 @@ async function main() {
       options: { translateTime: 'HH:MM:ss Z', ignore: 'pid,hostname' },
     }
   }
-  const fastify = Fastify({ logger: loggerConfig })
+  const fastify = Fastify({ logger: loggerConfig }).withTypeProvider<ZodTypeProvider>()
+  fastify.setValidatorCompiler(validatorCompiler)
+  fastify.setSerializerCompiler(serializerCompiler)
 
   const prisma = new PrismaClient({
     adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

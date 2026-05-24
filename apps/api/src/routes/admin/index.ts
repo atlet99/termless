@@ -12,10 +12,17 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { updateUserRoleSchema } from '@termless/shared'
+import { z } from 'zod'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+
+const createUserSchema = z.object({
+  email: z.email(),
+  displayName: z.string().max(100).optional(),
+  role: z.enum(['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER']),
+  password: z.string().min(8).optional(),
+})
 
 export async function registerAdminRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -25,7 +32,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       preHandler: [requireRole('ADMIN')],
     },
     async () => {
-      const prisma = (fastify as any).prisma as PrismaClient
+      const prisma = fastify.prisma
       return prisma.user.findMany({
         select: { id: true, email: true, displayName: true, role: true, createdAt: true },
         orderBy: { createdAt: 'desc' },
@@ -40,21 +47,16 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       preHandler: [requireRole('ADMIN')],
     },
     async (request, reply) => {
-      const { email, displayName, role, password } = request.body as any
-      const prisma = (fastify as any).prisma as PrismaClient
+      const { email, displayName, role, password } = createUserSchema.parse(request.body)
+      const prisma = fastify.prisma
 
       const { hashPassword } = await import('@termless/auth')
       const passwordHash = password ? await hashPassword(password) : null
 
       const user = await prisma.user.create({
-        data: { email, displayName, role, passwordHash },
+        data: { email, displayName: displayName ?? null, role, passwordHash },
       })
-      ;(fastify as any).audit?.(
-        (request as any).user.id,
-        'admin.user.create',
-        { userId: user.id },
-        request.ip,
-      )
+      void fastify.audit(request.user!.id, 'admin.user.create', { userId: user.id }, request.ip)
       return reply.code(201).send({ id: user.id, email: user.email, role: user.role })
     },
   )
@@ -68,14 +70,14 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
     async (request, _reply) => {
       const { id } = request.params as { id: string }
       const { role } = updateUserRoleSchema.parse(request.body)
-      const prisma = (fastify as any).prisma as PrismaClient
+      const prisma = fastify.prisma
 
       const user = await prisma.user.update({
         where: { id },
         data: { role },
       })
-      ;(fastify as any).audit?.(
-        (request as any).user.id,
+      void fastify.audit(
+        request.user!.id,
         'admin.user.updateRole',
         { userId: id, role },
         request.ip,

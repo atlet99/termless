@@ -32,8 +32,7 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
     },
     async (_request, reply) => {
       try {
-        const prisma = (fastify as any).prisma
-        await prisma.$queryRaw`SELECT 1`
+        await fastify.prisma.$queryRaw`SELECT 1`
         return { status: 'ready', timestamp: new Date().toISOString() }
       } catch {
         return reply.code(503).send({ status: 'not ready' })
@@ -56,7 +55,7 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
         ADMIN: ['auth', 'sessions', 'workspaces', 'admin', 'system'],
       }
 
-      const role = (request as any).user?.role ?? 'VIEWER'
+      const role = request.user?.role ?? 'VIEWER'
       const allowedTags = ROLE_VISIBLE_TAGS[role] ?? []
 
       const filteredPaths: Record<string, unknown> = {}

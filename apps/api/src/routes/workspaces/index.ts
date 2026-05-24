@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { createWorkspaceSchema } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
@@ -25,8 +24,8 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       preHandler: [requireRole('DEVELOPER')],
     },
     async (request) => {
-      const prisma = (fastify as any).prisma as PrismaClient
-      const userId = (request as any).user.id
+      const prisma = fastify.prisma
+      const userId = request.user!.id
       return prisma.workspace.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -42,8 +41,8 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const body = createWorkspaceSchema.parse(request.body)
-      const user = (request as any).user
-      const prisma = (fastify as any).prisma as PrismaClient
+      const user = request.user!
+      const prisma = fastify.prisma
 
       const workspace = await prisma.workspace.create({
         data: {
@@ -52,7 +51,7 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
           path: body.path,
         },
       })
-      ;(fastify as any).audit?.(user.id, 'workspace.create', { name: body.name }, request.ip)
+      void fastify.audit(user.id, 'workspace.create', { name: body.name }, request.ip)
       return reply.code(201).send(workspace)
     },
   )

@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { createSession, destroySession, verifyPassword, verifyTotpCode } from '@termless/auth'
 import { loginSchema } from '@termless/shared'
 import { authAttemptsTotal } from '@termless/shared'
@@ -34,7 +33,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const body = loginSchema.parse(request.body)
-      const prisma = (fastify as any).prisma as PrismaClient
+      const prisma = fastify.prisma
 
       const user = await prisma.user.findUnique({ where: { email: body.email } })
       if (!user?.passwordHash) {
@@ -71,7 +70,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       )
 
       authAttemptsTotal.inc({ mode: 'local', result: 'success' })
-      ;(fastify as any).audit?.(user.id, 'auth.login', undefined, request.ip)
+      void fastify.audit(user.id, 'auth.login', undefined, request.ip)
 
       return {
         token,

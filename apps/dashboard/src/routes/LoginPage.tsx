@@ -32,8 +32,8 @@ export function LoginPage() {
     try {
       const data = await api.login(email, password)
       setAuth(data.token, data.user)
-    } catch (err: any) {
-      setError(err.message ?? 'Login failed')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Login failed')
     } finally {
       setLoading(false)
     }

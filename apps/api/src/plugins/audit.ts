@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import fp from 'fastify-plugin'
 
 export const register = fp(async (fastify) => {
@@ -24,11 +23,10 @@ export const register = fp(async (fastify) => {
       metadata?: Record<string, unknown> | null,
       ip?: string,
     ) => {
-      const prisma = (fastify as any).prisma as PrismaClient
       const data: Record<string, unknown> = { userId, action }
       if (metadata) data.metadata = metadata
       if (ip) data.ip = ip
-      await prisma.auditLog.create({ data: data as any })
+      await fastify.prisma.auditLog.create({ data: data as any })
     },
   )
 })

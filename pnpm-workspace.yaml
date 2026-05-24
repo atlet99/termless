@@ -19,9 +19,11 @@ allowBuilds:
   '@biomejs/biome': true
   '@prisma/engines': true
   argon2: true
+  core-js: true
   esbuild: true
   lefthook: true
   prisma: true
+  protobufjs: true
   unrs-resolver: true
 
 peerDependencyRules:

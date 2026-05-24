@@ -33,7 +33,6 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.7",
     "@termless/eslint-config": "workspace:*",
-    "@types/i18next": "^13.0.0",
     "@types/node": "catalog:",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",

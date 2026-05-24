@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
+    "@redocly/cli": "^2.31.4",
     "@types/jsdom": "^28.0.3",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",

@@ -29,6 +29,7 @@ export interface AuthenticatedUser {
   email: string
   displayName: string | null
   role: Role
+  systemUid?: number
 }
 
 export interface PaginationQuery {

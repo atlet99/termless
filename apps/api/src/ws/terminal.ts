@@ -12,7 +12,6 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
@@ -43,7 +42,7 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       }
 
       const { sessionId } = request.params
-      const prisma = (fastify as any).prisma as PrismaClient
+      const prisma = fastify.prisma
 
       const session = await prisma.session.findUnique({ where: { id: sessionId } })
       if (!session) {

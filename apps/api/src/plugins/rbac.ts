@@ -13,6 +13,7 @@
  */
 
 import type { Role } from '@termless/shared'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
 const ROLE_HIERARCHY: Record<Role, number> = {
@@ -28,7 +29,7 @@ export function hasRole(userRole: Role | undefined, requiredRole: Role): boolean
 }
 
 export function requireRole(role: Role) {
-  return async (request: any, reply: any) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
       return reply
         .code(401)
