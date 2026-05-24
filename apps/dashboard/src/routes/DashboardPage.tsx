@@ -14,15 +14,23 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { TerminalView } from '../components/Terminal'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 
 export function DashboardPage() {
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'ru' : 'en'
+    void i18n.changeLanguage(newLang)
+    localStorage.setItem('termless_lang', newLang)
+  }
 
   const { data: sessions } = useQuery({
     queryKey: ['sessions'],
@@ -50,7 +58,7 @@ export function DashboardPage() {
             }}
             className="text-sm text-zinc-400 hover:text-zinc-100"
           >
-            ← Back
+            {t('dashboard.back')}
           </button>
           <span className="text-sm text-zinc-400">{activeSessionId}</span>
         </div>
@@ -66,13 +74,20 @@ export function DashboardPage() {
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
         <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            {i18n.language === 'en' ? 'RU' : 'EN'}
+          </button>
           <span className="text-sm text-zinc-400">{user?.email}</span>
           <button
             type="button"
             onClick={logout}
             className="text-sm text-zinc-500 hover:text-zinc-100"
           >
-            Logout
+            {t('dashboard.logout')}
           </button>
         </div>
       </header>
@@ -89,12 +104,14 @@ export function DashboardPage() {
               disabled={createSession.isPending}
               className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
             >
-              + {tool.charAt(0) + tool.slice(1).toLowerCase()}
+              {t(`session.new${tool.charAt(0) + tool.slice(1).toLowerCase()}`)}
             </button>
           ))}
         </div>
 
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4">Active Sessions</h2>
+        <h2 className="text-lg font-semibold text-zinc-200 mb-4">
+          {t('dashboard.activeSessions')}
+        </h2>
         <div className="space-y-2">
           {sessions?.map((session: any) => (
             <div
@@ -115,7 +132,7 @@ export function DashboardPage() {
                   }}
                   className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
                 >
-                  Connect
+                  {t('dashboard.connect')}
                 </button>
                 <button
                   type="button"
@@ -124,13 +141,13 @@ export function DashboardPage() {
                   }}
                   className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
                 >
-                  Delete
+                  {t('dashboard.delete')}
                 </button>
               </div>
             </div>
           ))}
           {(!sessions || sessions.length === 0) && (
-            <p className="text-zinc-500 text-sm">No active sessions. Create one above.</p>
+            <p className="text-zinc-500 text-sm">{t('dashboard.noSessions')}</p>
           )}
         </div>
       </main>

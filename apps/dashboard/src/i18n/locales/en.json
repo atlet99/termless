@@ -20,7 +20,8 @@
   "session": {
     "newOpencode": "+ Opencode",
     "newClaude": "+ Claude",
-    "newBash": "+ Bash"
+    "newBash": "+ Bash",
+    "connected": "Connected to Termless terminal"
   },
   "common": {
     "error": "Error"

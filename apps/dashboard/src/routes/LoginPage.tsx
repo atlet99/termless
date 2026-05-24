@@ -13,12 +13,14 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 
 import type { SyntheticEvent } from 'react'
 
 export function LoginPage() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -33,7 +35,7 @@ export function LoginPage() {
       const data = await api.login(email, password)
       setAuth(data.token, data.user)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setError(err instanceof Error ? err.message : t('auth.loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -42,11 +44,11 @@ export function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-950">
       <div className="w-full max-w-md p-8 bg-zinc-900 rounded-xl border border-zinc-800">
-        <h1 className="text-2xl font-bold text-zinc-100 mb-6">Termless</h1>
+        <h1 className="text-2xl font-bold text-zinc-100 mb-6">{t('app.title')}</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm text-zinc-400 mb-1">
-              Email
+              {t('auth.email')}
             </label>
             <input
               id="email"
@@ -61,7 +63,7 @@ export function LoginPage() {
           </div>
           <div>
             <label htmlFor="password" className="block text-sm text-zinc-400 mb-1">
-              Password
+              {t('auth.password')}
             </label>
             <input
               id="password"
@@ -80,7 +82,7 @@ export function LoginPage() {
             disabled={loading}
             className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white font-medium transition-colors"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? t('auth.signingIn') : t('auth.signIn')}
           </button>
         </form>
       </div>

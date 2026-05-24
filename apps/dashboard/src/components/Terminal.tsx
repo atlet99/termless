@@ -17,6 +17,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
 import { useEffect, useRef } from 'react'
+import i18n from '../i18n'
 
 interface TerminalViewProps {
   sessionId: string
@@ -73,7 +74,7 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
     const socket = new WebSocket(wsUrl, ['bearer', token ?? ''].join('.'))
 
     socket.onopen = () => {
-      term.writeln('\x1b[1;32mConnected to Termless terminal\x1b[0m\r')
+      term.writeln(`\x1b[1;32m${i18n.t('session.connected')}\x1b[0m\r`)
     }
 
     socket.onmessage = (event) => {
