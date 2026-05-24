@@ -32,7 +32,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const prisma = fastify.prisma
-      const userId = request.user!.id
+      const userId = request.user?.id
+      if (!userId) return []
       const sessions = await prisma.session.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -49,7 +50,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const body = createSessionSchema.parse(request.body)
-      const user = request.user!
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
 
       const maxSessions = Number(process.env.MAX_SESSIONS_PER_USER) || 5
@@ -131,7 +133,8 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
-      const user = request.user!
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
 
       const session = await prisma.session.findUnique({ where: { id } })

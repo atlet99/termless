@@ -47,7 +47,7 @@ export default defineConfig([
       parser: tseslint.parser,
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.ts', 'vite.config.ts'],
+          allowDefaultProject: ['eslint.config.ts', 'vite.config.ts', 'vitest.config.ts'],
         },
       },
     },

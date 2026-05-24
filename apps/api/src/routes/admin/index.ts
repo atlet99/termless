@@ -56,7 +56,9 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       const user = await prisma.user.create({
         data: { email, displayName: displayName ?? null, role, passwordHash },
       })
-      void fastify.audit(request.user!.id, 'admin.user.create', { userId: user.id }, request.ip)
+      const adminUser = request.user
+      if (!adminUser) return reply.code(401).send({ error: 'Unauthorized' })
+      void fastify.audit(adminUser.id, 'admin.user.create', { userId: user.id }, request.ip)
       return reply.code(201).send({ id: user.id, email: user.email, role: user.role })
     },
   )
@@ -67,21 +69,18 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       schema: { tags: ['admin'], description: 'Update user role (ADMIN only)' },
       preHandler: [requireRole('ADMIN')],
     },
-    async (request, _reply) => {
+    async (request, reply) => {
       const { id } = request.params as { id: string }
       const { role } = updateUserRoleSchema.parse(request.body)
       const prisma = fastify.prisma
+      const adminUser = request.user
+      if (!adminUser) return reply.code(401).send({ error: 'Unauthorized' })
 
       const user = await prisma.user.update({
         where: { id },
         data: { role },
       })
-      void fastify.audit(
-        request.user!.id,
-        'admin.user.updateRole',
-        { userId: id, role },
-        request.ip,
-      )
+      void fastify.audit(adminUser.id, 'admin.user.updateRole', { userId: id, role }, request.ip)
       return { id: user.id, role: user.role }
     },
   )

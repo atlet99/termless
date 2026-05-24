@@ -25,7 +25,8 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const prisma = fastify.prisma
-      const userId = request.user!.id
+      const userId = request.user?.id
+      if (!userId) return []
       return prisma.workspace.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -41,7 +42,8 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const body = createWorkspaceSchema.parse(request.body)
-      const user = request.user!
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
 
       const workspace = await prisma.workspace.create({
