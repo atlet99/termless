@@ -42,10 +42,17 @@ export async function createSession(
 export async function getSession(
   redisUrl: string,
   token: string,
+  ttlSeconds?: number,
 ): Promise<AuthenticatedUser | null> {
   const client = await getRedisClient(redisUrl)
-  const data = await client.get(`termless:session:${token}`)
+  const key = `termless:session:${token}`
+  const data = await client.get(key)
   if (!data) return null
+
+  if (ttlSeconds) {
+    await client.expire(key, ttlSeconds)
+  }
+
   return JSON.parse(data) as AuthenticatedUser
 }
 

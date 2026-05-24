@@ -65,4 +65,23 @@ export const dbConnectionPoolSize = new Gauge({
   help: 'PostgreSQL connection pool active connections',
 })
 
+export const terminalReconnectsTotal = new Counter({
+  name: 'termless_terminal_reconnects_total',
+  help: 'Total terminal WebSocket reconnects',
+  labelNames: ['tool'],
+})
+
+export const workerSpawnDuration = new Histogram({
+  name: 'termless_worker_spawn_duration_seconds',
+  help: 'Worker process spawn duration',
+  labelNames: ['tool'],
+  buckets: [0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+})
+
+export const workerCrashesTotal = new Counter({
+  name: 'termless_worker_crashes_total',
+  help: 'Total worker process crashes',
+  labelNames: ['tool'],
+})
+
 export { register } from 'prom-client'

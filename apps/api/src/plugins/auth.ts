@@ -32,6 +32,7 @@ export const register = fp(async (fastify) => {
   fastify.decorateRequest('user', null as any)
 
   const redisUrl = process.env.REDIS_URL
+  const sessionTtlSeconds = Number(process.env.SESSION_TTL_HOURS ?? 8) * 60 * 60
 
   fastify.addHook('onRequest', async (request, _reply) => {
     if (!redisUrl) return
@@ -40,7 +41,7 @@ export const register = fp(async (fastify) => {
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7)
-      const user = await getSession(redisUrl, token)
+      const user = await getSession(redisUrl, token, sessionTtlSeconds)
       if (user) {
         request.user = user
         return
@@ -48,7 +49,7 @@ export const register = fp(async (fastify) => {
     }
 
     if (cookieToken) {
-      const user = await getSession(redisUrl, cookieToken)
+      const user = await getSession(redisUrl, cookieToken, sessionTtlSeconds)
       if (user) {
         request.user = user
         return
