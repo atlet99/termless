@@ -56,6 +56,18 @@ packages-dedupe:  ## Check for duplicate dependencies
 	@pnpm packages:dedupe || true
 	$(call log_ok, "Dedupe check done")
 
+shellcheck:  ## Check shell scripts with ShellCheck
+	$(call log_step, "Running ShellCheck")
+	@command -v shellcheck >/dev/null 2>&1 || ($(call log_error, "shellcheck not found. Install: brew install shellcheck"); exit 1)
+	@find . -name '*.sh' -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/.turbo/*' -exec shellcheck {} +
+	$(call log_ok, "ShellCheck passed")
+
+hadolint:  ## Check Dockerfiles with Hadolint
+	$(call log_step, "Running Hadolint")
+	@command -v hadolint >/dev/null 2>&1 || ($(call log_error, "hadolint not found. Install: brew install hadolint"); exit 1)
+	@find . -name 'Dockerfile*' -not -path '*/node_modules/*' -exec hadolint {} +
+	$(call log_ok, "Hadolint passed")
+
 check-all: lint typecheck i18n-check license-check peers-check docs-lint  ## Run all checks (lint, typecheck, i18n, license, peers, docs)
 	$(call log_section, "All checks passed!")
 
@@ -70,4 +82,4 @@ peers-check:  ## Check for peer dependency issues
 fix-all: lint-fix license-fix  ## Auto-fix all auto-fixable issues (lint, format, license)
 	$(call log_section, "All fixes applied!")
 
-.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe check-all peers-check fix-all
+.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe shellcheck hadolint check-all peers-check fix-all
