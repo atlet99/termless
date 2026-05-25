@@ -33,9 +33,11 @@ import { registerAdminRoutes } from './routes/admin/index.js'
 import { registerAuthRoutes } from './routes/auth/index.js'
 import { registerPreferencesRoutes } from './routes/preferences/index.js'
 import { registerSessionRoutes } from './routes/sessions/index.js'
+import { registerShareRoutes } from './routes/share/index.js'
 import { registerSnippetRoutes } from './routes/snippets/index.js'
 import { registerSystemRoutes } from './routes/system/index.js'
 import { registerWorkspaceRoutes } from './routes/workspaces/index.js'
+import { registerShareWs } from './ws/share-viewer.js'
 import { registerTerminalWs } from './ws/terminal.js'
 
 const PORT = Number(process.env.PORT) || 3000
@@ -85,8 +87,10 @@ async function main() {
   await registerWorkspaceRoutes(fastify)
   await registerPreferencesRoutes(fastify)
   await registerSnippetRoutes(fastify)
+  await registerShareRoutes(fastify)
   await registerAdminRoutes(fastify)
   await registerTerminalWs(fastify)
+  await registerShareWs(fastify)
 
   fastify.addHook('onClose', async () => {
     await prisma.$disconnect()

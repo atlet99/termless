@@ -16,11 +16,7 @@ import crypto from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
-const createShareSchema = z.object({
-  expiresIn: z.enum(['1h', '24h', '7d']),
-})
-
-function getExpiryTtl(expiresIn: string): number {
+function getInviteTtl(expiresIn: string): number {
   switch (expiresIn) {
     case '1h': {
       return 3600
@@ -37,18 +33,22 @@ function getExpiryTtl(expiresIn: string): number {
   }
 }
 
-export async function registerShareRoutes(fastify: FastifyInstance) {
+const createInviteSchema = z.object({
+  expiresIn: z.enum(['1h', '24h', '7d']),
+})
+
+export async function registerInviteRoutes(fastify: FastifyInstance) {
   fastify.post(
-    '/api/v1/sessions/:id/share',
+    '/api/v1/sessions/:id/invite',
     {
-      schema: { tags: ['sharing'], description: 'Create read-only share link' },
+      schema: { tags: ['sharing'], description: 'Create invite for interactive session sharing' },
     },
     async (request, reply) => {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
       const { id } = request.params as { id: string }
-      const body = createShareSchema.parse(request.body)
+      const body = createInviteSchema.parse(request.body)
 
       const session = await fastify.prisma.session.findUnique({ where: { id } })
       if (!session) return reply.code(404).send({ error: 'Session not found' })
@@ -63,42 +63,38 @@ export async function registerShareRoutes(fastify: FastifyInstance) {
       const client = await getRedisClient(redisUrl)
 
       const token = crypto.randomBytes(32).toString('hex')
-      const key = `termless:share:${token}`
-      const ttl = getExpiryTtl(body.expiresIn)
+      const key = `termless:invite:${token}`
+      const ttl = getInviteTtl(body.expiresIn)
 
       await client.set(
         key,
         JSON.stringify({
           sessionId: id,
-          userId: user.id,
+          inviterId: user.id,
           createdAt: Date.now(),
         }),
         { EX: ttl },
       )
 
-      void fastify.audit(user.id, 'session.share_created', { sessionId: id }, request.ip)
+      void fastify.audit(user.id, 'session.invite_sent', { sessionId: id }, request.ip)
 
       return reply.code(201).send({
-        shareToken: token,
+        inviteToken: token,
         expiresIn: body.expiresIn,
-        url: `/view/${token}`,
       })
     },
   )
 
-  fastify.delete(
-    '/api/v1/sessions/:id/share',
+  fastify.get(
+    '/api/v1/invites/:token',
     {
-      schema: { tags: ['sharing'], description: 'Revoke share link' },
+      schema: { tags: ['sharing'], description: 'Get invite details' },
     },
     async (request, reply) => {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
-      const { id } = request.params as { id: string }
-      const { token } = request.query as { token?: string }
-
-      if (!token) return reply.code(400).send({ error: 'Token required' })
+      const { token } = request.params as { token: string }
 
       const redisUrl = process.env.REDIS_URL
       if (!redisUrl) return reply.code(500).send({ error: 'Redis not configured' })
@@ -106,20 +102,22 @@ export async function registerShareRoutes(fastify: FastifyInstance) {
       const { getRedisClient } = await import('@termless/auth')
       const client = await getRedisClient(redisUrl)
 
-      const key = `termless:share:${token}`
+      const key = `termless:invite:${token}`
       const data = await client.get(key)
-      if (!data) return reply.code(404).send({ error: 'Share link not found or expired' })
+      if (!data) return reply.code(404).send({ error: 'Invite not found or expired' })
 
-      const shareData = JSON.parse(data) as { sessionId: string; userId: string }
-      if (shareData.sessionId !== id) return reply.code(404).send({ error: 'Share link not found' })
-      if (shareData.userId !== user.id && user.role !== 'ADMIN') {
-        return reply.code(403).send({ error: 'Forbidden' })
+      const inviteData = JSON.parse(data) as { sessionId: string; inviterId: string }
+
+      const session = await fastify.prisma.session.findUnique({
+        where: { id: inviteData.sessionId },
+      })
+      if (!session) return reply.code(404).send({ error: 'Session not found' })
+
+      return {
+        sessionId: session.id,
+        tool: session.tool,
+        inviterId: inviteData.inviterId,
       }
-
-      await client.del(key)
-      void fastify.audit(user.id, 'session.share_revoked', { sessionId: id }, request.ip)
-
-      return { ok: true }
     },
   )
 }

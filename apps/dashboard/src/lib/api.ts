@@ -86,6 +86,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-
   deleteSnippet: (id: string) => fetchApi<void>(`/api/v1/snippets/${id}`, { method: 'DELETE' }),
+
+  createShare: (sessionId: string, expiresIn: string) =>
+    fetchApi<{ shareToken: string; url: string }>(`/api/v1/sessions/${sessionId}/share`, {
+      method: 'POST',
+      body: JSON.stringify({ expiresIn }),
+    }),
+
+  revokeShare: (sessionId: string, token: string) =>
+    fetchApi<void>(`/api/v1/sessions/${sessionId}/share?token=${token}`, { method: 'DELETE' }),
 }
