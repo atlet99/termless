@@ -12,21 +12,11 @@
  * limitations under the License.
  */
 
-import type { Role } from '@termless/shared'
+import { type Role, hasRole } from '@termless/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
-const ROLE_HIERARCHY: Record<Role, number> = {
-  VIEWER: 0,
-  DEVELOPER: 1,
-  OPERATOR: 2,
-  ADMIN: 3,
-}
-
-export function hasRole(userRole: Role | undefined, requiredRole: Role): boolean {
-  if (!userRole) return false
-  return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[requiredRole] ?? 0)
-}
+export { hasRole }
 
 export function requireRole(role: Role) {
   return async (request: FastifyRequest, reply: FastifyReply) => {

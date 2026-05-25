@@ -12,7 +12,9 @@
  * limitations under the License.
  */
 
-export type Role = 'ADMIN' | 'OPERATOR' | 'DEVELOPER' | 'VIEWER'
+import type { Role } from '../roles.js'
+
+export type { Role }
 
 export type Tool = 'OPENCODE' | 'CLAUDE' | 'BASH'
 

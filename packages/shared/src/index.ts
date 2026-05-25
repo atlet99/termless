@@ -15,3 +15,4 @@
 export * from './schemas/index.js'
 export type * from './types/index.js'
 export * from './metrics.js'
+export * from './roles.js'

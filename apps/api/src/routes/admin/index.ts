@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { updateUserRoleSchema } from '@termless/shared'
+import { ROLE_NAMES, updateUserRoleSchema } from '@termless/shared'
 import { z } from 'zod'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
@@ -20,7 +20,7 @@ import { requireRole } from '../../plugins/rbac.js'
 const createUserSchema = z.object({
   email: z.email(),
   displayName: z.string().max(100).optional(),
-  role: z.enum(['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER']),
+  role: z.enum(ROLE_NAMES),
   password: z.string().min(8).optional(),
 })
 

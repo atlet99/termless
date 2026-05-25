@@ -13,8 +13,9 @@
  */
 
 import { z } from 'zod'
+import { ROLE_NAMES } from '../roles.js'
 
-export const roleSchema = z.enum(['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER'])
+export const roleSchema = z.enum(ROLE_NAMES)
 
 export const userSchema = z.object({
   id: z.string(),
