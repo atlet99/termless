@@ -118,4 +118,54 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       }
     },
   )
+
+  fastify.delete(
+    '/api/v1/admin/users/:id/sessions',
+    {
+      schema: {
+        tags: ['admin'],
+        description: 'Force-logout user - revoke all sessions (ADMIN only)',
+      },
+      preHandler: [requireRole('ADMIN')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const prisma = fastify.prisma
+      const redisUrl = process.env.REDIS_URL
+      const adminUser = request.user
+      if (!adminUser) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const user = await prisma.user.findUnique({ where: { id } })
+      if (!user) return reply.code(404).send({ error: 'User not found' })
+
+      const sessions = await prisma.session.findMany({ where: { userId: id } })
+
+      for (const session of sessions) {
+        if (session.ttydPort) {
+          const { stopTtyd } = await import('@termless/worker')
+          stopTtyd(session.ttydPort)
+        }
+      }
+
+      await prisma.session.deleteMany({ where: { userId: id } })
+
+      if (redisUrl) {
+        const { getRedisClient } = await import('@termless/auth')
+        const client = await getRedisClient(redisUrl)
+        const keys = await client.keys('termless:session:*')
+        for (const key of keys) {
+          const data = await client.get(key)
+          if (data) {
+            const sessionUser = JSON.parse(data) as { id?: string }
+            if (sessionUser.id === id) {
+              await client.del(key)
+            }
+          }
+        }
+      }
+
+      void fastify.audit(adminUser.id, 'admin.user.force_logout', { userId: id }, request.ip)
+      return { ok: true, revokedSessions: sessions.length }
+    },
+  )
 }

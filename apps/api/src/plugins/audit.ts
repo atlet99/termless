@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 
+import { Prisma } from '@prisma/client'
 import fp from 'fastify-plugin'
 
 export const register = fp(async (fastify) => {
@@ -23,10 +24,16 @@ export const register = fp(async (fastify) => {
       metadata?: Record<string, unknown> | null,
       ip?: string,
     ) => {
-      const data: Record<string, unknown> = { userId, action }
-      if (metadata) data.metadata = metadata
-      if (ip) data.ip = ip
-      await fastify.prisma.auditLog.create({ data: data as any })
+      const data: Prisma.AuditLogCreateInput = {
+        user: { connect: { id: userId } },
+        action,
+        metadata:
+          metadata === null || metadata === undefined
+            ? Prisma.DbNull
+            : (metadata as Prisma.InputJsonValue),
+        ip: ip ?? null,
+      }
+      await fastify.prisma.auditLog.create({ data })
     },
   )
 })

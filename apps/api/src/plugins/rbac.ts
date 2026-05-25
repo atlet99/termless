@@ -12,10 +12,12 @@
  * limitations under the License.
  */
 
-import { type Role, hasRole } from '@termless/shared'
+import type { Role } from '@termless/shared'
+import { hasRole } from '@termless/shared'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
+// eslint-disable-next-line unicorn/prefer-export-from -- hasRole is used locally
 export { hasRole }
 
 export function requireRole(role: Role) {

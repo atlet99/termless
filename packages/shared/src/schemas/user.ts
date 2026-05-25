@@ -13,6 +13,7 @@
  */
 
 import { z } from 'zod'
+
 import { ROLE_NAMES } from '../roles.js'
 
 export const roleSchema = z.enum(ROLE_NAMES)

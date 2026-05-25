@@ -37,6 +37,6 @@ export function isValidRole(role: string): role is Role {
 }
 
 export function hasRole(userRole: string | undefined, requiredRole: Role): boolean {
-  if (!userRole) return false
+  if (userRole === undefined || userRole === '') return false
   return getRoleLevel(userRole) >= getRoleLevel(requiredRole)
 }

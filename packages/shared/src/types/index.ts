@@ -14,6 +14,7 @@
 
 import type { Role } from '../roles.js'
 
+// eslint-disable-next-line unicorn/prefer-export-from -- Role is used locally
 export type { Role }
 
 export type Tool = 'OPENCODE' | 'CLAUDE' | 'BASH'

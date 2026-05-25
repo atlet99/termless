@@ -14,6 +14,7 @@
 
 import cookie from '@fastify/cookie'
 import session from '@fastify/session'
+import type { AuthenticatedUser } from '@termless/shared'
 import { getSession } from '@termless/auth'
 import fp from 'fastify-plugin'
 
@@ -29,7 +30,7 @@ export const register = fp(async (fastify) => {
     },
   })
 
-  fastify.decorateRequest('user', null as any)
+  fastify.decorateRequest('user', undefined as unknown as AuthenticatedUser)
 
   const redisUrl = process.env.REDIS_URL
   const sessionTtlSeconds = Number(process.env.SESSION_TTL_HOURS ?? 8) * 60 * 60
