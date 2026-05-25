@@ -40,6 +40,7 @@ import { registerSnippetRoutes } from './routes/snippets/index.js'
 import { registerSystemRoutes } from './routes/system/index.js'
 import { registerTokenRoutes } from './routes/tokens/index.js'
 import { registerNotificationRoutes } from './routes/events/index.js'
+import { registerEnvVariableRoutes } from './routes/env-vars/index.js'
 import { registerWorkspaceRoutes } from './routes/workspaces/index.js'
 import { registerShareWs } from './ws/share-viewer.js'
 import { registerTerminalWs } from './ws/terminal.js'
@@ -100,6 +101,7 @@ async function main() {
   await registerNotificationRoutes(fastify)
   await registerAuthRoutes(fastify)
   await registerTokenRoutes(fastify)
+  await registerEnvVariableRoutes(fastify)
   await registerSessionRoutes(fastify)
   await registerWorkspaceRoutes(fastify)
   await registerPreferencesRoutes(fastify)

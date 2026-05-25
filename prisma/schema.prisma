@@ -24,6 +24,7 @@ model User {
   snippets     Snippet[]
   recordings   Recording[]
   apiTokens    ApiToken[]
+  envVars      UserEnvVar[]
 }
 
 model Session {
@@ -131,5 +132,18 @@ model ApiToken {
   expiresAt DateTime?
   createdAt DateTime @default(now())
 
+  @@index([userId])
+}
+
+model UserEnvVar {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  encryptedVal String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, name])
   @@index([userId])
 }
