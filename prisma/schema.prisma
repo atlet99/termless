@@ -7,22 +7,23 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String      @id @default(cuid())
+  email        String      @unique
   displayName  String?
   passwordHash String?
   totpSecret   String?
-  totpVerified Boolean   @default(false)
-  role         Role      @default(DEVELOPER)
-  systemUid    Int?      @unique
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  totpVerified Boolean     @default(false)
+  role         Role        @default(DEVELOPER)
+  systemUid    Int?        @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   sessions     Session[]
   workspaces   Workspace[]
   auditLogs    AuditLog[]
   preferences  UserPreference?
   snippets     Snippet[]
   recordings   Recording[]
+  apiTokens    ApiToken[]
 }
 
 model Session {
@@ -118,4 +119,17 @@ model Recording {
 
   @@index([userId])
   @@index([sessionId])
+}
+
+model ApiToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  tokenHash String   @unique
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

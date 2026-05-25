@@ -14,6 +14,7 @@
 
 import cookie from '@fastify/cookie'
 import session from '@fastify/session'
+import crypto from 'node:crypto'
 import type { AuthenticatedUser } from '@termless/shared'
 import { getSession } from '@termless/auth'
 import fp from 'fastify-plugin'
@@ -42,6 +43,35 @@ export const register = fp(async (fastify) => {
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7)
+
+      // Check API token first
+      if (token.startsWith('ttls_')) {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+        const apiToken = await fastify.prisma.apiToken.findUnique({
+          where: { tokenHash },
+          include: { user: true },
+        })
+
+        if (apiToken && (!apiToken.expiresAt || apiToken.expiresAt > new Date())) {
+          const user: AuthenticatedUser = {
+            id: apiToken.user.id,
+            email: apiToken.user.email,
+            displayName: apiToken.user.displayName ?? null,
+            role: apiToken.user.role,
+          }
+          request.user = user
+
+          // Update last used asynchronously
+          fastify.prisma.apiToken
+            .update({
+              where: { tokenHash },
+              data: { lastUsed: new Date() },
+            })
+            .catch(() => {})
+          return
+        }
+      }
+
       const user = await getSession(redisUrl, token, sessionTtlSeconds)
       if (user) {
         request.user = user

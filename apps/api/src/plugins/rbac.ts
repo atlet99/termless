@@ -35,6 +35,34 @@ export function requireRole(role: Role) {
   }
 }
 
+export function requireAdminIpAllowlist() {
+  const ADMIN_IP_ALLOWLIST =
+    process.env.ADMIN_IP_ALLOWLIST?.split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean) ?? []
+
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (ADMIN_IP_ALLOWLIST.length === 0) {
+      return
+    }
+
+    const forwarded = request.headers['x-forwarded-for']
+    let clientIp: string
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      const parts = forwarded.split(',')
+      clientIp = parts[0]?.trim() ?? 'unknown'
+    } else {
+      clientIp = request.ip ?? 'unknown'
+    }
+
+    if (!ADMIN_IP_ALLOWLIST.includes(clientIp)) {
+      return reply
+        .code(403)
+        .send({ error: 'Forbidden', message: 'IP not allowed for admin access', statusCode: 403 })
+    }
+  }
+}
+
 export const register = fp(async (fastify) => {
   fastify.decorate('hasRole', hasRole)
   fastify.decorate('requireRole', requireRole)

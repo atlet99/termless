@@ -50,3 +50,28 @@ export const totpSetupResponseSchema = z.object({
 
 export type TotpSetupInput = z.infer<typeof totpSetupSchema>
 export type TotpSetupResponse = z.infer<typeof totpSetupResponseSchema>
+
+export const createApiTokenSchema = z.object({
+  name: z.string().min(1).max(100),
+  expiresInDays: z.number().int().min(1).max(365).optional(),
+})
+
+export const apiTokenResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  token: z.string(),
+  expiresAt: z.date().nullable(),
+  createdAt: z.date(),
+})
+
+export const apiTokenSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  expiresAt: z.date().nullable(),
+  createdAt: z.date(),
+  lastUsed: z.date().nullable(),
+})
+
+export type CreateApiTokenInput = z.infer<typeof createApiTokenSchema>
+export type ApiTokenResponse = z.infer<typeof apiTokenResponseSchema>
+export type ApiToken = z.infer<typeof apiTokenSchema>

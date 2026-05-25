@@ -15,7 +15,7 @@
 import { ROLE_NAMES, updateUserRoleSchema } from '@termless/shared'
 import { z } from 'zod'
 import type { FastifyInstance } from 'fastify'
-import { requireRole } from '../../plugins/rbac.js'
+import { requireAdminIpAllowlist, requireRole } from '../../plugins/rbac.js'
 
 const createUserSchema = z.object({
   email: z.email(),
@@ -25,11 +25,13 @@ const createUserSchema = z.object({
 })
 
 export async function registerAdminRoutes(fastify: FastifyInstance) {
+  const adminPreHandler = [requireRole('ADMIN'), requireAdminIpAllowlist()]
+
   fastify.get(
     '/api/v1/admin/users',
     {
       schema: { tags: ['admin'], description: 'List all users (ADMIN only)' },
-      preHandler: [requireRole('ADMIN')],
+      preHandler: adminPreHandler,
     },
     async () => {
       const prisma = fastify.prisma
@@ -44,7 +46,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
     '/api/v1/admin/users',
     {
       schema: { tags: ['admin'], description: 'Create user (ADMIN only)' },
-      preHandler: [requireRole('ADMIN')],
+      preHandler: adminPreHandler,
     },
     async (request, reply) => {
       const { email, displayName, role, password } = createUserSchema.parse(request.body)
@@ -67,7 +69,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
     '/api/v1/admin/users/:id/role',
     {
       schema: { tags: ['admin'], description: 'Update user role (ADMIN only)' },
-      preHandler: [requireRole('ADMIN')],
+      preHandler: adminPreHandler,
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
@@ -89,7 +91,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
     '/api/v1/admin/audit-logs',
     {
       schema: { tags: ['admin'], description: 'List audit logs (ADMIN only)' },
-      preHandler: [requireRole('ADMIN')],
+      preHandler: adminPreHandler,
     },
     async (request) => {
       const prisma = fastify.prisma
@@ -126,7 +128,7 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
         tags: ['admin'],
         description: 'Force-logout user - revoke all sessions (ADMIN only)',
       },
-      preHandler: [requireRole('ADMIN')],
+      preHandler: adminPreHandler,
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
