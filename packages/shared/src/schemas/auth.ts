@@ -38,3 +38,15 @@ export const oidcCallbackSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>
 export type LoginResponse = z.infer<typeof loginResponseSchema>
 export type OidcCallbackInput = z.infer<typeof oidcCallbackSchema>
+
+export const totpSetupSchema = z.object({
+  totpCode: z.string().length(6),
+})
+
+export const totpSetupResponseSchema = z.object({
+  secret: z.string(),
+  uri: z.string(),
+})
+
+export type TotpSetupInput = z.infer<typeof totpSetupSchema>
+export type TotpSetupResponse = z.infer<typeof totpSetupResponseSchema>

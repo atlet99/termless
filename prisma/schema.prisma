@@ -12,6 +12,7 @@ model User {
   displayName  String?
   passwordHash String?
   totpSecret   String?
+  totpVerified Boolean   @default(false)
   role         Role      @default(DEVELOPER)
   systemUid    Int?      @unique
   createdAt    DateTime  @default(now())
@@ -21,6 +22,7 @@ model User {
   auditLogs    AuditLog[]
   preferences  UserPreference?
   snippets     Snippet[]
+  recordings   Recording[]
 }
 
 model Session {
@@ -101,4 +103,19 @@ model Snippet {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Recording {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId  String
+  title      String?
+  filePath   String
+  duration   Int?
+  sizeBytes  Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
 }

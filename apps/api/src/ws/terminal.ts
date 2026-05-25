@@ -14,6 +14,7 @@
 
 import { getRedisClient, getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
+import { startRecording } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
 
@@ -90,17 +91,28 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
         return
       }
 
+      const shouldRecord = request.query.record === 'true' && isOwner
+      let recording: ReturnType<typeof startRecording> | null = null
+
+      if (shouldRecord) {
+        recording = startRecording(user.id, sessionId, 80, 24)
+        void fastify.audit(user.id, 'recording.start', { sessionId }, request.ip)
+      }
+
       const ttydUrl = `ws://127.0.0.1:${session.ttydPort}/ws`
       const ttydSocket = new WebSocket(ttydUrl, 'tty')
 
       terminalConnectionsTotal.inc({ tool: session.tool })
       const connectionStart = Date.now()
 
-      socket.send(JSON.stringify({ type: 'connected', sessionId }))
+      socket.send(JSON.stringify({ type: 'connected', sessionId, recording: !!recording }))
 
       ttydSocket.on('message', (data: WebSocket.Data) => {
         const payload = typeof data === 'string' ? data : Buffer.from(data as Buffer).toString()
         socket.send(payload)
+        if (recording) {
+          recording.write(payload)
+        }
       })
 
       socket.on('message', (data: unknown) => {
@@ -113,10 +125,24 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
         socket.close()
       })
 
-      socket.on('close', () => {
+      socket.on('close', async () => {
         const durationSeconds = (Date.now() - connectionStart) / 1000
         terminalDuration.observe({ tool: session.tool }, durationSeconds)
         ttydSocket.close()
+
+        if (recording) {
+          const { duration, sizeBytes } = recording.stop()
+          await fastify.prisma.recording.create({
+            data: {
+              userId: user.id,
+              sessionId,
+              filePath: recording.filePath,
+              duration,
+              sizeBytes,
+            },
+          })
+          void fastify.audit(user.id, 'recording.stop', { sessionId, duration }, request.ip)
+        }
       })
 
       ttydSocket.on('error', () => {

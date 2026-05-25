@@ -12,9 +12,16 @@
  * limitations under the License.
  */
 
-import { createSession, destroySession, verifyPassword, verifyTotpCode } from '@termless/auth'
+import {
+  createSession,
+  destroySession,
+  generateTotpSecret,
+  verifyPassword,
+  verifyTotpCode,
+} from '@termless/auth'
 import { loginSchema } from '@termless/shared'
 import { authAttemptsTotal } from '@termless/shared'
+import { totpSetupSchema } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
@@ -52,7 +59,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
           authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
           return reply.code(401).send({ error: 'Invalid TOTP code' })
         }
-      } else if (user.role === 'ADMIN' || user.role === 'OPERATOR') {
+      } else if (user.totpVerified || user.role === 'ADMIN' || user.role === 'OPERATOR') {
         authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
         return reply.code(403).send({
           error: 'TOTP setup required',
@@ -135,6 +142,68 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     },
     async (_request, reply) => {
       return reply.code(501).send({ error: 'OIDC not yet configured' })
+    },
+  )
+
+  // TOTP setup for ADMIN/OPERATOR
+  fastify.post(
+    '/auth/totp/setup',
+    {
+      schema: {
+        tags: ['auth'],
+        description: 'Generate TOTP secret for 2FA setup',
+      },
+    },
+    async (request, reply) => {
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Not authenticated' })
+
+      const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
+      if (!dbUser) return reply.code(404).send({ error: 'User not found' })
+
+      if (dbUser.totpSecret) {
+        return reply.send({ message: 'TOTP already set up' })
+      }
+
+      const { secret, uri } = generateTotpSecret(dbUser.email)
+      await fastify.prisma.user.update({
+        where: { id: user.id },
+        data: { totpSecret: secret },
+      })
+
+      return { secret, uri }
+    },
+  )
+
+  fastify.post(
+    '/auth/totp/verify',
+    {
+      schema: {
+        tags: ['auth'],
+        description: 'Verify TOTP code and enable 2FA',
+        body: totpSetupSchema,
+      },
+    },
+    async (request, reply) => {
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Not authenticated' })
+
+      const body = totpSetupSchema.parse(request.body)
+      const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
+      if (!dbUser?.totpSecret) {
+        return reply.code(400).send({ error: 'TOTP not set up' })
+      }
+
+      if (!verifyTotpCode(dbUser.totpSecret, body.totpCode)) {
+        return reply.code(401).send({ error: 'Invalid TOTP code' })
+      }
+
+      await fastify.prisma.user.update({
+        where: { id: user.id },
+        data: { totpVerified: true },
+      })
+
+      return { ok: true }
     },
   )
 }
