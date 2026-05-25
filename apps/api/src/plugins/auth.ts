@@ -62,12 +62,10 @@ export const register = fp(async (fastify) => {
           request.user = user
 
           // Update last used asynchronously
-          fastify.prisma.apiToken
-            .update({
-              where: { tokenHash },
-              data: { lastUsed: new Date() },
-            })
-            .catch(() => {})
+          void fastify.prisma.apiToken.update({
+            where: { tokenHash },
+            data: { lastUsed: new Date() },
+          })
           return
         }
       }

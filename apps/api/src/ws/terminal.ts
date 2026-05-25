@@ -18,6 +18,8 @@ import { startRecording } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
 
+const SESSION_IDLE_TIMEOUT_MS = Number(process.env.SESSION_IDLE_TIMEOUT_MS ?? 30 * 60 * 1000) // 30 mins default
+
 async function authenticateUser(request: any, redisUrl: string | undefined) {
   const user = request.user
   if (user) return user
@@ -91,6 +93,15 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
         return
       }
 
+      // Check idle timeout
+      if (SESSION_IDLE_TIMEOUT_MS > 0 && session.lastSeenAt) {
+        const idleMs = Date.now() - session.lastSeenAt.getTime()
+        if (idleMs > SESSION_IDLE_TIMEOUT_MS) {
+          socket.close(4006, 'Session idle timeout')
+          return
+        }
+      }
+
       const shouldRecord = request.query.record === 'true' && isOwner
       let recording: ReturnType<typeof startRecording> | null = null
 
@@ -118,6 +129,13 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       socket.on('message', (data: unknown) => {
         if (typeof data === 'string') {
           ttydSocket.send(data)
+        }
+        // Update last seen timestamp for idle timeout
+        if (session && SESSION_IDLE_TIMEOUT_MS > 0) {
+          fastify.prisma.session.update({
+            where: { id: session.id },
+            data: { lastSeenAt: new Date() },
+          })
         }
       })
 

@@ -102,6 +102,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
           name: body.name ?? null,
           tool: body.tool,
           tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
+          lastSeenAt: new Date(),
         },
       })
 
