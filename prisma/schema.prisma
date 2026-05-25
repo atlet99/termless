@@ -19,6 +19,8 @@ model User {
   sessions     Session[]
   workspaces   Workspace[]
   auditLogs    AuditLog[]
+  preferences  UserPreference?
+  snippets     Snippet[]
 }
 
 model Session {
@@ -74,4 +76,29 @@ enum Tool {
   OPENCODE
   CLAUDE
   BASH
+}
+
+model UserPreference {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  terminalTheme String   @default("tokyo-night")
+  terminalFont  String   @default("JetBrains Mono")
+  terminalSize  Int      @default(15)
+  cursorStyle   String   @default("block")
+  layoutMode    String   @default("popup")
+  updatedAt     DateTime @updatedAt
+}
+
+model Snippet {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  command   String
+  tags      String[]
+  scope     String   @default("personal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

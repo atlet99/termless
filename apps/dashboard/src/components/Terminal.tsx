@@ -19,12 +19,23 @@ import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
 import { useEffect, useRef, useState } from 'react'
 import i18n from '../i18n'
+import { TERMINAL_THEMES } from '../lib/terminal-themes'
 
 interface TerminalViewProps {
   sessionId: string
+  theme?: string
+  fontFamily?: string
+  fontSize?: number
+  cursorStyle?: string
 }
 
-export function TerminalView({ sessionId }: TerminalViewProps) {
+export function TerminalView({
+  sessionId,
+  theme = 'tokyo-night',
+  fontFamily = 'JetBrains Mono',
+  fontSize = 15,
+  cursorStyle = 'block',
+}: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const searchAddonRef = useRef<SearchAddon | null>(null)
@@ -36,25 +47,15 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
   useEffect(() => {
     if (!containerRef.current) return
 
+    const termTheme = TERMINAL_THEMES[theme] ?? TERMINAL_THEMES['tokyo-night']
+    if (!termTheme) return
+
     const term = new Terminal({
-      cursorBlink: true,
-      fontSize: 15,
-      fontFamily: 'JetBrains Mono, Cascadia Code, monospace',
-      theme: {
-        foreground: '#a9b1d6',
-        background: '#1a1b26',
-        cursor: '#c0caf5',
-        cursorAccent: '#1a1b26',
-        selectionBackground: '#33467c',
-        black: '#15161e',
-        red: '#f7768e',
-        green: '#9ece6a',
-        yellow: '#e0af68',
-        blue: '#7aa2f7',
-        magenta: '#bb9af7',
-        cyan: '#7dcfff',
-        white: '#a9b1d6',
-      },
+      cursorBlink: cursorStyle !== 'block',
+      cursorStyle: cursorStyle as 'block' | 'underline' | 'bar',
+      fontSize,
+      fontFamily: `${fontFamily}, Cascadia Code, monospace`,
+      theme: termTheme,
     })
 
     const fitAddon = new FitAddon()
@@ -169,7 +170,7 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
       socket?.close()
       term.dispose()
     }
-  }, [sessionId])
+  }, [sessionId, theme, fontFamily, fontSize, cursorStyle])
 
   return (
     <div className="relative h-full w-full">

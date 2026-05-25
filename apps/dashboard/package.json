@@ -24,6 +24,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^15.0.0",
+    "react-resizable-panels": "^4.11.2",
     "zod": "catalog:",
     "zustand": "^5.0.5"
   },

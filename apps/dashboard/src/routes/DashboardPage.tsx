@@ -15,6 +15,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
+import { SettingsPanel } from '../components/SettingsPanel'
 import { TerminalView } from '../components/Terminal'
 import { api } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
@@ -25,6 +27,7 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'ru' : 'en'
@@ -37,6 +40,16 @@ export function DashboardPage() {
     queryFn: () => api.getSessions(),
   })
 
+  const { data: preferences } = useQuery({
+    queryKey: ['preferences'],
+    queryFn: () => api.getPreferences(),
+  })
+
+  const updatePreferences = useMutation({
+    mutationFn: (prefs: Record<string, string>) => api.updatePreferences(prefs),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['preferences'] }),
+  })
+
   const createSession = useMutation({
     mutationFn: (tool: string) => api.createSession(tool),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
@@ -47,7 +60,14 @@ export function DashboardPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
   })
 
-  if (activeSessionId) {
+  const layoutMode = preferences?.layoutMode ?? 'popup'
+
+  const toggleLayoutMode = () => {
+    const newMode = layoutMode === 'popup' ? 'embedded' : 'popup'
+    updatePreferences.mutate({ layoutMode: newMode })
+  }
+
+  if (activeSessionId && layoutMode === 'popup') {
     return (
       <div className="h-screen flex flex-col bg-zinc-950">
         <div className="flex items-center gap-4 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
@@ -61,9 +81,78 @@ export function DashboardPage() {
             {t('dashboard.back')}
           </button>
           <span className="text-sm text-zinc-400">{activeSessionId}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setShowSettings(true)
+            }}
+            className="ml-auto text-sm text-zinc-500 hover:text-zinc-300"
+          >
+            Settings
+          </button>
         </div>
         <div className="flex-1">
-          <TerminalView sessionId={activeSessionId} />
+          <TerminalView
+            sessionId={activeSessionId}
+            theme={preferences?.terminalTheme ?? 'tokyo-night'}
+            fontFamily={preferences?.terminalFont ?? 'JetBrains Mono'}
+            fontSize={preferences?.terminalSize ?? 15}
+            cursorStyle={preferences?.cursorStyle ?? 'block'}
+          />
+        </div>
+        {showSettings && preferences && (
+          <SettingsPanel
+            preferences={preferences}
+            onClose={() => {
+              setShowSettings(false)
+            }}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (layoutMode === 'embedded') {
+    return (
+      <div className="h-screen flex flex-col bg-zinc-950">
+        <header className="border-b border-zinc-800 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-bold text-zinc-100">Termless</h1>
+            <button
+              type="button"
+              onClick={toggleLayoutMode}
+              className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              Popup
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              {i18n.language === 'en' ? 'RU' : 'EN'}
+            </button>
+            <span className="text-sm text-zinc-400">{user?.email}</span>
+            <button
+              type="button"
+              onClick={logout}
+              className="text-sm text-zinc-500 hover:text-zinc-100"
+            >
+              {t('dashboard.logout')}
+            </button>
+          </div>
+        </header>
+        <div className="flex-1">
+          <EmbeddedTerminalLayout
+            sessions={sessions ?? []}
+            activeSessionId={activeSessionId}
+            onSelectSession={setActiveSessionId}
+            onClose={() => {
+              setActiveSessionId(null)
+            }}
+          />
         </div>
       </div>
     )
@@ -72,7 +161,16 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-zinc-950">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
+          <button
+            type="button"
+            onClick={toggleLayoutMode}
+            className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            Embedded
+          </button>
+        </div>
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -122,7 +220,7 @@ export function DashboardPage() {
                 <span className="px-2 py-1 bg-zinc-800 rounded text-xs font-mono text-purple-400">
                   {session.tool}
                 </span>
-                <span className="text-sm text-zinc-400">{session.id}</span>
+                <span className="text-sm text-zinc-400">{session.name ?? session.id}</span>
               </div>
               <div className="flex gap-2">
                 <button

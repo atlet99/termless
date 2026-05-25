@@ -31,7 +31,9 @@ import { register as registerOpenapi } from './plugins/openapi.js'
 import { register as registerRbac } from './plugins/rbac.js'
 import { registerAdminRoutes } from './routes/admin/index.js'
 import { registerAuthRoutes } from './routes/auth/index.js'
+import { registerPreferencesRoutes } from './routes/preferences/index.js'
 import { registerSessionRoutes } from './routes/sessions/index.js'
+import { registerSnippetRoutes } from './routes/snippets/index.js'
 import { registerSystemRoutes } from './routes/system/index.js'
 import { registerWorkspaceRoutes } from './routes/workspaces/index.js'
 import { registerTerminalWs } from './ws/terminal.js'
@@ -81,6 +83,8 @@ async function main() {
   await registerAuthRoutes(fastify)
   await registerSessionRoutes(fastify)
   await registerWorkspaceRoutes(fastify)
+  await registerPreferencesRoutes(fastify)
+  await registerSnippetRoutes(fastify)
   await registerAdminRoutes(fastify)
   await registerTerminalWs(fastify)
 
