@@ -7,24 +7,25 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  displayName  String?
-  passwordHash String?
-  totpSecret   String?
-  totpVerified Boolean     @default(false)
-  role         Role        @default(DEVELOPER)
-  systemUid    Int?        @unique
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  sessions     Session[]
-  workspaces   Workspace[]
-  auditLogs    AuditLog[]
-  preferences  UserPreference?
-  snippets     Snippet[]
-  recordings   Recording[]
-  apiTokens    ApiToken[]
-  envVars      UserEnvVar[]
+  id             String           @id @default(cuid())
+  email          String           @unique
+  displayName    String?
+  passwordHash   String?
+  totpSecret     String?
+  totpVerified   Boolean          @default(false)
+  role           Role             @default(DEVELOPER)
+  systemUid      Int?             @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  sessions       Session[]
+  workspaces     Workspace[]
+  auditLogs      AuditLog[]
+  preferences    UserPreference?
+  snippets       Snippet[]
+  recordings     Recording[]
+  apiTokens      ApiToken[]
+  envVars        UserEnvVar[]
+  sessionTemplates SessionTemplate[]
 }
 
 model Session {
@@ -143,6 +144,22 @@ model UserEnvVar {
   encryptedVal String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model SessionTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  tool        Tool
+  workingDir  String
+  envVars     String?
+  snippetIds  String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, name])
   @@index([userId])

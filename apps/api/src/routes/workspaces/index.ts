@@ -13,9 +13,13 @@
  */
 
 import { createWorkspaceSchema } from '@termless/shared'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+
+const execAsync = promisify(exec)
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/workspace'
 
@@ -29,6 +33,29 @@ function validateWorkspacePath(workspacePath: string): boolean {
   return normalized.startsWith(WORKSPACE_ROOT)
 }
 
+async function getGitStatus(
+  workspacePath: string,
+  systemUid: number,
+): Promise<{
+  branch: string
+  changedFiles: number
+}> {
+  try {
+    const { stdout: branch } = await execAsync(
+      `sudo -u termless-user-${systemUid} git -C ${workspacePath} branch --show-current`,
+    )
+    const { stdout: status } = await execAsync(
+      `sudo -u termless-user-${systemUid} git -C ${workspacePath} status --porcelain`,
+    )
+    return {
+      branch: branch.trim(),
+      changedFiles: status.split('\n').filter(Boolean).length,
+    }
+  } catch {
+    return { branch: '', changedFiles: 0 }
+  }
+}
+
 export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/api/v1/workspaces',
@@ -40,10 +67,44 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       const prisma = fastify.prisma
       const userId = request.user?.id
       if (!userId) return []
-      return prisma.workspace.findMany({
+      const workspaces = await prisma.workspace.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
       })
+      return workspaces
+    },
+  )
+
+  fastify.get(
+    '/api/v1/workspaces/:id/git-status',
+    {
+      schema: { tags: ['workspaces'], description: 'Get git status for workspace' },
+      preHandler: [requireRole('DEVELOPER')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+      const prisma = fastify.prisma
+
+      const workspace = await prisma.workspace.findFirst({
+        where: { id, userId: user.id },
+      })
+      if (!workspace) {
+        return reply.code(404).send({ error: 'Workspace not found' })
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { systemUid: true },
+      })
+      const systemUid = dbUser?.systemUid
+      if (!systemUid) {
+        return reply.code(400).send({ error: 'User not provisioned' })
+      }
+
+      const gitStatus = await getGitStatus(workspace.path, systemUid)
+      return gitStatus
     },
   )
 

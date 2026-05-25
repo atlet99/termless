@@ -42,6 +42,7 @@ import { registerTokenRoutes } from './routes/tokens/index.js'
 import { registerNotificationRoutes } from './routes/events/index.js'
 import { registerEnvVariableRoutes } from './routes/env-vars/index.js'
 import { registerWorkspaceRoutes } from './routes/workspaces/index.js'
+import { registerTemplateRoutes } from './routes/templates/index.js'
 import { registerShareWs } from './ws/share-viewer.js'
 import { registerTerminalWs } from './ws/terminal.js'
 
@@ -110,6 +111,7 @@ async function main() {
   await registerInviteRoutes(fastify)
   await registerRecordingRoutes(fastify)
   await registerAdminRoutes(fastify)
+  await registerTemplateRoutes(fastify)
   await registerTerminalWs(fastify)
   await registerShareWs(fastify)
 
