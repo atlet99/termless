@@ -64,7 +64,12 @@ export async function handleCallback(
   codeVerifier: string,
 ): Promise<OidcUser> {
   const cfg = await getOidcConfig(oidcConfig)
-  const result = await (authorizationCodeGrant as any)(cfg, new URL(oidcConfig.redirectUri), {
+  const grantFunction = authorizationCodeGrant as (
+    config: unknown,
+    redirectUrl: URL,
+    options: Record<string, string>,
+  ) => Promise<{ claims: () => Record<string, string> | null }>
+  const result = await grantFunction(cfg, new URL(oidcConfig.redirectUri), {
     client_id: oidcConfig.clientId,
     code,
     code_verifier: codeVerifier,
@@ -74,8 +79,8 @@ export async function handleCallback(
     throw new Error('No claims in OIDC response')
   }
   return {
-    sub: claims.sub,
-    email: claims.email as string,
+    sub: claims.sub ?? '',
+    email: claims.email ?? '',
     name: typeof claims.name === 'string' ? claims.name : undefined,
   }
 }
