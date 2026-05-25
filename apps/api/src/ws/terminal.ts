@@ -12,10 +12,42 @@
  * limitations under the License.
  */
 
-import { getSession } from '@termless/auth'
+import { getRedisClient, getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
+
+async function authenticateUser(request: any, redisUrl: string | undefined) {
+  const user = request.user
+  if (user) return user
+  if (!redisUrl) return null
+
+  const subprotocol = request.headers['sec-websocket-protocol']
+  if (!subprotocol?.startsWith('bearer.')) return null
+
+  const token = subprotocol.slice(7)
+  return token ? getSession(redisUrl, token) : null
+}
+
+async function hasSessionAccess(
+  sessionId: string,
+  _userId: string,
+  role: string,
+  inviteToken: string | undefined,
+  redisUrl: string | undefined,
+): Promise<boolean> {
+  if (role === 'ADMIN') return true
+
+  if (!inviteToken) return false
+  if (!redisUrl) return false
+
+  const client = await getRedisClient(redisUrl)
+  const inviteData = await client.get(`termless:invite:${inviteToken}`)
+  if (!inviteData) return false
+
+  const invite = JSON.parse(inviteData) as { sessionId: string }
+  return invite.sessionId === sessionId
+}
 
 export async function registerTerminalWs(fastify: FastifyInstance) {
   const redisUrl = process.env.REDIS_URL
@@ -24,34 +56,33 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
     '/ws/terminal/:sessionId',
     { websocket: true } as never,
     async (socket: any, request: any) => {
-      let user = request.user
-
-      if (!user && redisUrl) {
-        const subprotocol = request.headers['sec-websocket-protocol']
-        if (subprotocol?.startsWith('bearer.')) {
-          const token = subprotocol.slice(7)
-          if (token) {
-            user = await getSession(redisUrl, token)
-          }
-        }
-      }
-
+      const user = await authenticateUser(request, redisUrl)
       if (!user) {
         socket.close(4001, 'Unauthorized')
         return
       }
 
       const { sessionId } = request.params
-      const prisma = fastify.prisma
-
-      const session = await prisma.session.findUnique({ where: { id: sessionId } })
+      const session = await fastify.prisma.session.findUnique({ where: { id: sessionId } })
       if (!session) {
         socket.close(4004, 'Session not found')
         return
       }
-      if (session.userId !== user.id && user.role !== 'ADMIN') {
-        socket.close(4003, 'Forbidden')
-        return
+
+      const isOwner = session.userId === user.id
+      if (!isOwner) {
+        const inviteToken = request.query.inviteToken as string | undefined
+        const hasAccess = await hasSessionAccess(
+          sessionId,
+          user.id,
+          user.role,
+          inviteToken,
+          redisUrl,
+        )
+        if (!hasAccess) {
+          socket.close(4003, 'Forbidden')
+          return
+        }
       }
 
       if (!session.ttydPort) {
@@ -68,11 +99,8 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       socket.send(JSON.stringify({ type: 'connected', sessionId }))
 
       ttydSocket.on('message', (data: WebSocket.Data) => {
-        if (typeof data === 'string') {
-          socket.send(data)
-        } else {
-          socket.send(Buffer.from(data as Buffer).toString())
-        }
+        const payload = typeof data === 'string' ? data : Buffer.from(data as Buffer).toString()
+        socket.send(payload)
       })
 
       socket.on('message', (data: unknown) => {
