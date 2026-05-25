@@ -19,6 +19,27 @@ import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
 
 const SESSION_IDLE_TIMEOUT_MS = Number(process.env.SESSION_IDLE_TIMEOUT_MS ?? 30 * 60 * 1000) // 30 mins default
+const SESSION_AUTO_PAUSE_MS = Number(process.env.SESSION_AUTO_PAUSE_MS ?? 60 * 60 * 1000) // 60 mins default
+
+/**
+ * Checks for idle sessions and logs auto-pause events
+ */
+async function checkAndPauseIdleSessions(fastify: FastifyInstance): Promise<void> {
+  if (SESSION_AUTO_PAUSE_MS <= 0) return
+
+  const idleThreshold = new Date(Date.now() - SESSION_AUTO_PAUSE_MS)
+  const idleSessions = await fastify.prisma.session.findMany({
+    where: {
+      lastSeenAt: { lt: idleThreshold },
+      ttydPort: { not: null },
+    },
+    select: { id: true, userId: true },
+  })
+
+  for (const session of idleSessions) {
+    void fastify.audit(session.userId, 'session.auto_pause', { sessionId: session.id }, 'system')
+  }
+}
 
 async function authenticateUser(request: any, redisUrl: string | undefined) {
   const user = request.user
@@ -54,6 +75,13 @@ async function hasSessionAccess(
 
 export async function registerTerminalWs(fastify: FastifyInstance) {
   const redisUrl = process.env.REDIS_URL
+
+  // Schedule periodic auto-pause check for idle sessions
+  if (SESSION_AUTO_PAUSE_MS > 0) {
+    setInterval(() => {
+      void checkAndPauseIdleSessions(fastify)
+    }, 60 * 1000) // Check every minute
+  }
 
   fastify.get(
     '/ws/terminal/:sessionId',

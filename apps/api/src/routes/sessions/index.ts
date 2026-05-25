@@ -17,9 +17,34 @@ import { activeSessionsTotal } from '@termless/shared'
 import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
 
 const SYSTEM_UID_MIN = 2000
 const SYSTEM_UID_MAX = 60000
+const DEFAULT_DISK_QUOTA_MB = 1024 // 1GB default
+
+/**
+ * Checks disk usage against quota for a user's workspace
+ */
+async function checkDiskQuota(
+  workspacePath: string,
+  quotaMb: number,
+): Promise<{ allowed: boolean; usageMb: number }> {
+  try {
+    const { stdout } = await execAsync(`du -sm "${workspacePath}" 2>/dev/null || echo 0`)
+    const usageMb = Number.parseInt(stdout.trim(), 10) || 0
+    return { allowed: usageMb < quotaMb, usageMb }
+  } catch {
+    return { allowed: true, usageMb: 0 }
+  }
+}
+
+async function getDiskQuotaMb(): Promise<number> {
+  return Number(process.env.DISK_QUOTA_MB) || DEFAULT_DISK_QUOTA_MB
+}
 
 export async function registerSessionRoutes(fastify: FastifyInstance) {
   const workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace'
@@ -92,6 +117,17 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         if (workspace?.path.startsWith(workspaceRoot)) {
           workspacePath = workspace.path
         }
+      }
+
+      // Check disk quota before provisioning
+      const quotaMb = await getDiskQuotaMb()
+      const { allowed, usageMb } = await checkDiskQuota(workspacePath, quotaMb)
+      if (!allowed) {
+        return reply.code(507).send({
+          error: 'Disk quota exceeded',
+          usageMb,
+          quotaMb,
+        })
       }
 
       await provisionOsUser(systemUid, workspacePath, user.role)
