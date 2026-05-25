@@ -13,8 +13,21 @@
  */
 
 import { createWorkspaceSchema } from '@termless/shared'
+import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+
+const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/workspace'
+
+function validateWorkspacePath(workspacePath: string): boolean {
+  // Must be within workspace root
+  if (!workspacePath.startsWith(WORKSPACE_ROOT)) return false
+  // Must not contain path traversal
+  if (workspacePath.includes('..')) return false
+  // Must not escape to system directories
+  const normalized = path.normalize(workspacePath)
+  return normalized.startsWith(WORKSPACE_ROOT)
+}
 
 export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -46,6 +59,17 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
+
+      // Workspace isolation verification
+      if (!validateWorkspacePath(body.path)) {
+        void fastify.audit(
+          user.id,
+          'workspace.isolation_violation',
+          { path: body.path },
+          request.ip,
+        )
+        return reply.code(403).send({ error: 'Workspace path must be within workspace root' })
+      }
 
       const workspace = await prisma.workspace.create({
         data: {
