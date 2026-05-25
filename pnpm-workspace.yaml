@@ -31,3 +31,6 @@ peerDependencyRules:
     - eslint-plugin-react
     - eslint-plugin-jsx-a11y
     - eslint-plugin-vitest
+
+overrides:
+  '@hono/node-server': '>=1.19.13'
