@@ -16,8 +16,12 @@ import Fastify from 'fastify'
 import { register as registerOpenapi } from '../plugins/openapi.js'
 import { registerAdminRoutes } from '../routes/admin/index.js'
 import { registerAuthRoutes } from '../routes/auth/index.js'
+import { registerEnvVariableRoutes } from '../routes/env-vars/index.js'
 import { registerSessionRoutes } from '../routes/sessions/index.js'
 import { registerSystemRoutes } from '../routes/system/index.js'
+import { registerTemplateRoutes } from '../routes/templates/index.js'
+import { registerTokenRoutes } from '../routes/tokens/index.js'
+import { registerWebhookRoutes } from '../routes/webhooks/index.js'
 import { registerWorkspaceRoutes } from '../routes/workspaces/index.js'
 
 async function main() {
@@ -29,6 +33,11 @@ async function main() {
   await registerSessionRoutes(fastify)
   await registerWorkspaceRoutes(fastify)
   await registerAdminRoutes(fastify)
+  await registerWebhookRoutes(fastify)
+  await registerTokenRoutes(fastify)
+  await registerTemplateRoutes(fastify)
+  await registerEnvVariableRoutes(fastify)
+  await fastify.ready()
 
   const spec = fastify.swagger()
   process.stdout.write(JSON.stringify(spec, null, 2))

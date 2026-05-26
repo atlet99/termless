@@ -35,4 +35,12 @@ openapi-preview:  ## Open Scalar UI preview locally
 openapi-ci: openapi-validate  ## Full OpenAPI check for CI
 	$(call log_ok, "OpenAPI CI checks passed")
 
-.PHONY: openapi-export openapi-validate openapi-diff openapi-preview openapi-ci
+sdk-gen: openapi-export  ## Generate TypeScript SDK from OpenAPI spec
+	$(call log_step, "Generating SDK from OpenAPI spec")
+	@npx @hey-api/openapi-ts --input openapi.json --output packages/sdk/src --client @hey-api/client-fetch
+	$(call log_ok, "SDK generated in packages/sdk/src")
+	$(call log_step, "Building SDK")
+	@pnpm --filter=@termless/sdk build
+	$(call log_ok, "SDK built successfully")
+
+.PHONY: openapi-export openapi-validate openapi-diff openapi-preview openapi-ci sdk-gen

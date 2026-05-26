@@ -1,0 +1,102 @@
+/**
+ * Copyright 2026 Abdurakhman Rakhmankulov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '../lib/api'
+
+interface Recording {
+  id: string
+  userId: string
+  sessionId: string
+  title: string | null
+  filePath: string
+  duration: number | null
+  sizeBytes: number
+  createdAt: string
+}
+
+export function RecordingsList() {
+  const queryClient = useQueryClient()
+
+  const { data: recordings, isLoading } = useQuery<Recording[]>({
+    queryKey: ['recordings'],
+    queryFn: () => api.get('/api/v1/recordings'),
+  })
+
+  const deleteRecording = useMutation({
+    mutationFn: (id: string) => api.post(`/api/v1/recordings/${id}`, { method: 'DELETE' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recordings'] }),
+  })
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const formatDuration = (seconds: number | null) => {
+    if (seconds === null) return '—'
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${String(s).padStart(2, '0')}`
+  }
+
+  if (isLoading) return <div className="text-gray-400 p-4">Loading...</div>
+
+  return (
+    <div className="flex h-full flex-col gap-4 p-4">
+      <h2 className="text-lg font-semibold text-white">Recordings</h2>
+
+      <div className="space-y-2">
+        {recordings?.map((rec) => (
+          <div
+            key={rec.id}
+            className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg"
+          >
+            <div className="flex-1">
+              <div className="text-sm text-zinc-100">{rec.title ?? rec.sessionId}</div>
+              <div className="flex gap-4 text-xs text-zinc-500">
+                <span>{formatDuration(rec.duration)}</span>
+                <span>{formatBytes(rec.sizeBytes)}</span>
+                <span>{new Date(rec.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={`/api/v1/recordings/${rec.id}/stream`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-purple-400 hover:text-purple-300"
+              >
+                Download
+              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteRecording.mutate(rec.id)
+                }}
+                className="text-xs text-zinc-500 hover:text-red-400"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+        {(!recordings || recordings.length === 0) && (
+          <p className="text-zinc-500 text-sm">No recordings yet</p>
+        )}
+      </div>
+    </div>
+  )
+}

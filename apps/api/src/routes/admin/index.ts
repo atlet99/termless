@@ -103,6 +103,12 @@ export async function registerAdminRoutes(fastify: FastifyInstance) {
       const where: Record<string, unknown> = {}
       if (query.userId) where.userId = query.userId
       if (query.action) where.action = query.action
+      if (query.from || query.to) {
+        const createdAt: Record<string, Date> = {}
+        if (query.from) createdAt.gte = new Date(query.from)
+        if (query.to) createdAt.lte = new Date(query.to)
+        where.createdAt = createdAt
+      }
 
       const [logs, total] = await Promise.all([
         prisma.auditLog.findMany({

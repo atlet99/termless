@@ -15,3 +15,5 @@ globs:
   - "!**/dist/**"
   - "!**/coverage/**"
   - "!**/.turbo/**"
+  - "!**/.*-docs.md"
+  - "!AGENTS.md"

@@ -13,13 +13,19 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { CommandPalette } from '../components/CommandPalette'
 import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
+import { RecordingsList } from '../components/RecordingsList'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { TerminalView } from '../components/Terminal'
+import { WorkspaceManager } from '../components/WorkspaceManager'
 import { api } from '../lib/api'
+import { useNotifications } from '../lib/notifications'
 import { useAuthStore } from '../stores/auth'
+
+type Tab = 'sessions' | 'workspaces' | 'recordings'
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation()
@@ -28,6 +34,23 @@ export function DashboardPage() {
   const logout = useAuthStore((s) => s.logout)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [showPalette, setShowPalette] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>('sessions')
+  const token = useAuthStore((s) => s.token)
+  const { events: notifications } = useNotifications(token)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+        e.preventDefault()
+        setShowPalette((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+    }
+  }, [])
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'en' ? 'ru' : 'en'
@@ -43,6 +66,11 @@ export function DashboardPage() {
   const { data: preferences } = useQuery({
     queryKey: ['preferences'],
     queryFn: () => api.getPreferences(),
+  })
+
+  const { data: snippets } = useQuery({
+    queryKey: ['snippets'],
+    queryFn: () => api.getSnippets(),
   })
 
   const updatePreferences = useMutation({
@@ -191,64 +219,122 @@ export function DashboardPage() {
       </header>
 
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex gap-4 mb-8">
-          {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
+        {notifications.length > 0 && (
+          <div className="mb-4 p-2 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-400">
+            {notifications.slice(-3).map((n) => (
+              <div key={`${n.type}-${n.timestamp}`}>
+                {n.type}: {JSON.stringify(n.data)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-4 mb-6 border-b border-zinc-800 pb-2">
+          {(['sessions', 'workspaces', 'recordings'] as const).map((tab) => (
             <button
-              key={tool}
+              key={tab}
               type="button"
               onClick={() => {
-                createSession.mutate(tool)
+                setActiveTab(tab)
               }}
-              disabled={createSession.isPending}
-              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
+              className={`text-sm pb-1 border-b-2 transition-colors ${
+                activeTab === tab
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
             >
-              {t(`session.new${tool.charAt(0) + tool.slice(1).toLowerCase()}`)}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
 
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4">
-          {t('dashboard.activeSessions')}
-        </h2>
-        <div className="space-y-2">
-          {sessions?.map((session: any) => (
-            <div
-              key={session.id}
-              className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
-            >
-              <div className="flex items-center gap-4">
-                <span className="px-2 py-1 bg-zinc-800 rounded text-xs font-mono text-purple-400">
-                  {session.tool}
-                </span>
-                <span className="text-sm text-zinc-400">{session.name ?? session.id}</span>
-              </div>
-              <div className="flex gap-2">
+        {activeTab === 'workspaces' && <WorkspaceManager />}
+        {activeTab === 'recordings' && <RecordingsList />}
+        {activeTab === 'sessions' && (
+          <>
+            <div className="flex gap-4 mb-8">
+              {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
                 <button
+                  key={tool}
                   type="button"
                   onClick={() => {
-                    setActiveSessionId(session.id)
+                    createSession.mutate(tool)
                   }}
-                  className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
+                  disabled={createSession.isPending}
+                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
                 >
-                  {t('dashboard.connect')}
+                  {t(`session.new${tool.charAt(0) + tool.slice(1).toLowerCase()}`)}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    deleteSession.mutate(session.id)
-                  }}
-                  className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
-                >
-                  {t('dashboard.delete')}
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-          {(!sessions || sessions.length === 0) && (
-            <p className="text-zinc-500 text-sm">{t('dashboard.noSessions')}</p>
-          )}
-        </div>
+
+            <h2 className="text-lg font-semibold text-zinc-200 mb-4">
+              {t('dashboard.activeSessions')}
+            </h2>
+            <div className="space-y-2">
+              {sessions?.map((session: any) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="px-2 py-1 bg-zinc-800 rounded text-xs font-mono text-purple-400">
+                      {session.tool}
+                    </span>
+                    <span className="text-sm text-zinc-400">{session.name ?? session.id}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSessionId(session.id)
+                      }}
+                      className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
+                    >
+                      {t('dashboard.connect')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteSession.mutate(session.id)
+                      }}
+                      className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
+                    >
+                      {t('dashboard.delete')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {(!sessions || sessions.length === 0) && (
+                <p className="text-zinc-500 text-sm">{t('dashboard.noSessions')}</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {user?.role === 'ADMIN' && (
+          <div className="mt-8">
+            <a href="#/admin/audit" className="text-sm text-purple-400 hover:text-purple-300">
+              View Audit Log
+            </a>
+          </div>
+        )}
       </main>
+
+      {showPalette && (
+        <CommandPalette
+          snippets={snippets ?? []}
+          onSelect={(command) => {
+            setShowPalette(false)
+            if (activeSessionId) {
+              void api.post(`/api/v1/sessions/${activeSessionId}/exec`, { command })
+            }
+          }}
+          onClose={() => {
+            setShowPalette(false)
+          }}
+        />
+      )}
     </div>
   )
 }

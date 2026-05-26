@@ -144,11 +144,13 @@ const SKIP_DIRS = new Set([
   'backups',
   'test_results',
   'prisma',
+  'packages/sdk/src',
 ])
 
 const SKIP_FILES = new Set(['.DS_Store', 'Thumbs.db', 'eslint.config.ts'])
 
 function isIgnored(relPath: string): boolean {
+  if (relPath.startsWith('packages/sdk/src/')) return true
   const parts = relPath.split('/')
   const fileName = parts[parts.length - 1] ?? ''
   for (const p of ignorePatterns) {

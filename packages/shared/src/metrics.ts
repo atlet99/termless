@@ -84,4 +84,57 @@ export const workerCrashesTotal = new Counter({
   labelNames: ['tool'],
 })
 
+export const authSessionsActive = new Gauge({
+  name: 'termless_auth_sessions_active',
+  help: 'Currently active HTTP auth sessions',
+})
+
+export const totpVerificationsTotal = new Counter({
+  name: 'termless_totp_verifications_total',
+  help: 'Total TOTP verification attempts',
+  labelNames: ['result'],
+})
+
+export const dbQueriesTotal = new Counter({
+  name: 'termless_db_queries_total',
+  help: 'Total database queries',
+  labelNames: ['operation', 'table'],
+})
+
+export const dbQueryDuration = new Histogram({
+  name: 'termless_db_query_duration_seconds',
+  help: 'Database query duration',
+  labelNames: ['operation', 'table'],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1],
+})
+
+export const redisOperationsTotal = new Counter({
+  name: 'termless_redis_operations_total',
+  help: 'Total Redis operations',
+  labelNames: ['operation', 'result'],
+})
+
+export const redisOperationDuration = new Histogram({
+  name: 'termless_redis_operation_duration_seconds',
+  help: 'Redis operation duration',
+  labelNames: ['operation'],
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1],
+})
+
+export const shareLinksCreatedTotal = new Counter({
+  name: 'termless_share_links_created_total',
+  help: 'Total share links created',
+  labelNames: ['mode'],
+})
+
+export const recordingsCreatedTotal = new Counter({
+  name: 'termless_recordings_created_total',
+  help: 'Total recordings created',
+})
+
+export const recordingsStorageBytes = new Gauge({
+  name: 'termless_recordings_storage_bytes',
+  help: 'Total recordings storage size in bytes',
+})
+
 export { register } from 'prom-client'

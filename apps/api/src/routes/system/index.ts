@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 
+import { execFileSync } from 'node:child_process'
 import type { FastifyInstance } from 'fastify'
 
 const startTime = Date.now()
@@ -38,7 +39,7 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
       schema: { tags: ['system'], description: 'Readiness probe' },
     },
     async (_request, reply) => {
-      const checks: Record<string, { status: string; latencyMs?: number }> = {}
+      const checks: Record<string, { status: string; latencyMs?: number; freeGb?: number }> = {}
       let overallStatus: 'ok' | 'degraded' | 'down' = 'ok'
 
       const dbStart = Date.now()
@@ -62,6 +63,18 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
           checks.redis = { status: 'down', latencyMs: Date.now() - redisStart }
           overallStatus = overallStatus === 'down' ? 'down' : 'degraded'
         }
+      }
+
+      try {
+        const workspaceRoot = process.env.WORKSPACE_ROOT ?? '/workspace'
+        // eslint-disable-next-line sonarjs/no-os-command-from-path -- df is a standard system utility
+        const df = execFileSync('df', ['-BG', workspaceRoot], { encoding: 'utf8' })
+        const parts = df.trim().split(/\s+/)
+        const freeGb = Number.parseFloat(parts[3]?.replace('G', '') ?? '0')
+        checks.disk = { status: freeGb > 1 ? 'ok' : 'degraded', freeGb }
+        if (freeGb <= 1) overallStatus = overallStatus === 'down' ? 'down' : 'degraded'
+      } catch {
+        checks.disk = { status: 'unknown' }
       }
 
       const statusCode = overallStatus === 'down' ? 503 : 200

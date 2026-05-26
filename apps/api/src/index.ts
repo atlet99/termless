@@ -12,6 +12,7 @@
  * limitations under the License.
  */
 
+import './instrumentation.js'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import cors from '@fastify/cors'
@@ -23,6 +24,7 @@ import {
 } from '@fastify/type-provider-zod'
 import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
+import { trace } from '@opentelemetry/api'
 import { register as registerAudit } from './plugins/audit.js'
 import { register as registerAuth } from './plugins/auth.js'
 import { register as registerHelmet } from './plugins/helmet.js'
@@ -53,15 +55,29 @@ const HOST = process.env.HOST ?? '0.0.0.0'
 async function main() {
   const loggerConfig: Record<string, unknown> = {
     level: process.env.LOG_LEVEL ?? 'info',
+    formatters: {
+      log(object: Record<string, unknown>) {
+        const span = trace.getActiveSpan()
+        if (!span) return object
+        const ctx = span.spanContext()
+        return {
+          ...object,
+          traceId: ctx.traceId,
+          spanId: ctx.spanId,
+        }
+      },
+    },
+    ...(process.env.NODE_ENV === 'development'
+      ? {
+          transport: {
+            target: 'pino-pretty',
+            options: { translateTime: 'HH:MM:ss Z', ignore: 'pid,hostname' },
+          },
+        }
+      : {}),
   }
 
   const fastify = Fastify({ logger: loggerConfig }).withTypeProvider<ZodTypeProvider>()
-  if (process.env.NODE_ENV === 'development') {
-    loggerConfig.transport = {
-      target: 'pino-pretty',
-      options: { translateTime: 'HH:MM:ss Z', ignore: 'pid,hostname' },
-    }
-  }
   fastify.setValidatorCompiler(validatorCompiler)
   fastify.setSerializerCompiler(serializerCompiler)
 
@@ -98,6 +114,18 @@ async function main() {
   await registerAuth(fastify)
   await registerRbac(fastify)
   await registerAudit(fastify)
+
+  fastify.addHook('onRequest', async (request) => {
+    const span = trace.getActiveSpan()
+    if (span && request.user) {
+      /* eslint-disable @typescript-eslint/naming-convention -- OTel custom attributes */
+      span.setAttributes({
+        'termless.user.id': request.user.id,
+        'termless.user.role': request.user.role,
+      })
+      /* eslint-enable @typescript-eslint/naming-convention */
+    }
+  })
 
   await registerSystemRoutes(fastify)
   await registerNotificationRoutes(fastify)

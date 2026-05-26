@@ -52,6 +52,9 @@ ci: lint typecheck test openapi-ci docs-lint knip  ## Full CI pipeline check
 ci-security: packages-audit  ## Security-focused CI checks
 	$(call log_section, "Security checks passed!")
 
+sdk-ci: sdk-gen lint  ## SDK generation and lint check
+	$(call log_section, "SDK CI passed!")
+
 check-env:  ## Check required environment variables
 	$(call log_step, "Checking environment")
 	@[ -f .env ] || ($(call log_error, ".env file not found. Copy from .env.example"); exit 1)

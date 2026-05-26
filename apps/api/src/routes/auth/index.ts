@@ -183,7 +183,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       schema: {
         tags: ['auth'],
         description: 'Verify TOTP code and enable 2FA',
-        body: totpSetupSchema,
+        body: {
+          type: 'object',
+          required: ['totpCode'],
+          properties: {
+            totpCode: { type: 'string', minLength: 6, maxLength: 6 },
+          },
+        },
       },
     },
     async (request, reply) => {
