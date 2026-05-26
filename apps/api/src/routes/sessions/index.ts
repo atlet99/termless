@@ -17,6 +17,7 @@ import { activeSessionsTotal } from '@termless/shared'
 import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+import { triggerWebhook } from '../webhooks/index.js'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 
@@ -165,6 +166,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
 
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
       void fastify.audit(user.id, 'session.create', { tool: body.tool }, request.ip)
+      void triggerWebhook(fastify, 'session.created', { sessionId: session.id }, user.id)
 
       return {
         id: session.id,
@@ -218,6 +220,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
 
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
       void fastify.audit(user.id, 'session.delete', { sessionId: id }, request.ip)
+      void triggerWebhook(fastify, 'session.terminated', { sessionId: id }, user.id)
 
       return { ok: true }
     },

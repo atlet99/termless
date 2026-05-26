@@ -7,25 +7,26 @@ datasource db {
 }
 
 model User {
-  id             String           @id @default(cuid())
-  email          String           @unique
-  displayName    String?
-  passwordHash   String?
-  totpSecret     String?
-  totpVerified   Boolean          @default(false)
-  role           Role             @default(DEVELOPER)
-  systemUid      Int?             @unique
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  sessions       Session[]
-  workspaces     Workspace[]
-  auditLogs      AuditLog[]
-  preferences    UserPreference?
-  snippets       Snippet[]
-  recordings     Recording[]
-  apiTokens      ApiToken[]
-  envVars        UserEnvVar[]
+  id               String           @id @default(cuid())
+  email            String           @unique
+  displayName      String?
+  passwordHash     String?
+  totpSecret       String?
+  totpVerified     Boolean          @default(false)
+  role             Role             @default(DEVELOPER)
+  systemUid        Int?             @unique
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sessions         Session[]
+  workspaces       Workspace[]
+  auditLogs        AuditLog[]
+  preferences      UserPreference?
+  snippets         Snippet[]
+  recordings       Recording[]
+  apiTokens        ApiToken[]
+  envVars          UserEnvVar[]
   sessionTemplates SessionTemplate[]
+  webhooks         Webhook[]
 }
 
 model Session {
@@ -164,5 +165,19 @@ model SessionTemplate {
   updatedAt   DateTime @updatedAt
 
   @@unique([userId, name])
+  @@index([userId])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
 }

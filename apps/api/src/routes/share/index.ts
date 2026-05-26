@@ -13,6 +13,7 @@
  */
 
 import crypto from 'node:crypto'
+import { triggerWebhook } from '../webhooks/index.js'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 
@@ -81,6 +82,7 @@ export async function registerShareRoutes(fastify: FastifyInstance) {
       )
 
       void fastify.audit(user.id, 'session.share_created', { sessionId: id }, request.ip)
+      void triggerWebhook(fastify, 'session.shared', { sessionId: id }, user.id)
 
       return reply.code(201).send({
         shareToken: token,

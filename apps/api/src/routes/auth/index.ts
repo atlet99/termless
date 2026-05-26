@@ -22,6 +22,7 @@ import {
 import { loginSchema } from '@termless/shared'
 import { authAttemptsTotal } from '@termless/shared'
 import { totpSetupSchema } from '@termless/shared'
+import { triggerWebhook } from '../webhooks/index.js'
 import type { FastifyInstance } from 'fastify'
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
@@ -84,6 +85,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
 
       authAttemptsTotal.inc({ mode: 'local', result: 'success' })
       void fastify.audit(user.id, 'auth.login', undefined, request.ip)
+      void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
 
       return {
         token,

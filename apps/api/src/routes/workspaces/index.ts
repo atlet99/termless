@@ -18,6 +18,7 @@ import { promisify } from 'node:util'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+import { triggerWebhook } from '../webhooks/index.js'
 
 const execAsync = promisify(exec)
 
@@ -140,7 +141,31 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
         },
       })
       void fastify.audit(user.id, 'workspace.create', { name: body.name }, request.ip)
+      void triggerWebhook(fastify, 'workspace.created', { workspaceId: workspace.id }, user.id)
       return reply.code(201).send(workspace)
+    },
+  )
+
+  fastify.delete(
+    '/api/v1/workspaces/:id',
+    {
+      schema: { tags: ['workspaces'], description: 'Delete workspace' },
+      preHandler: [requireRole('DEVELOPER')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+      const prisma = fastify.prisma
+
+      const workspace = await prisma.workspace.findFirst({ where: { id, userId: user.id } })
+      if (!workspace) return reply.code(404).send({ error: 'Workspace not found' })
+
+      await prisma.workspace.delete({ where: { id } })
+      void fastify.audit(user.id, 'workspace.delete', { workspaceId: id }, request.ip)
+      void triggerWebhook(fastify, 'workspace.deleted', { workspaceId: id }, user.id)
+
+      return { ok: true }
     },
   )
 }
