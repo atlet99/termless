@@ -20,6 +20,10 @@ const createShareSchema = z.object({
   expiresIn: z.enum(['1h', '24h', '7d']),
 })
 
+const createPlaybackShareSchema = z.object({
+  expiresIn: z.enum(['1h', '24h', '7d']),
+})
+
 function getExpiryTtl(expiresIn: string): number {
   switch (expiresIn) {
     case '1h': {
@@ -120,6 +124,64 @@ export async function registerShareRoutes(fastify: FastifyInstance) {
       void fastify.audit(user.id, 'session.share_revoked', { sessionId: id }, request.ip)
 
       return { ok: true }
+    },
+  )
+
+  // Multi-user session playback share
+  fastify.post(
+    '/api/v1/recordings/:id/playback-share',
+    {
+      schema: { tags: ['sharing'], description: 'Create playback share link for recording' },
+    },
+    async (request, reply) => {
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const { id } = request.params as { id: string }
+      const body = createPlaybackShareSchema.parse(request.body)
+
+      const recording = await fastify.prisma.recording.findUnique({
+        where: { id },
+        include: { session: true },
+      })
+      if (!recording) return reply.code(404).send({ error: 'Recording not found' })
+      if (recording.userId !== user.id && user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+
+      const redisUrl = process.env.REDIS_URL
+      if (!redisUrl) return reply.code(500).send({ error: 'Redis not configured' })
+
+      const { getRedisClient } = await import('@termless/auth')
+      const client = await getRedisClient(redisUrl)
+
+      const token = crypto.randomBytes(32).toString('hex')
+      const key = `termless:playback:${token}`
+      const ttl = getExpiryTtl(body.expiresIn)
+
+      await client.set(
+        key,
+        JSON.stringify({
+          recordingId: id,
+          sessionId: recording.sessionId,
+          userId: user.id,
+          createdAt: Date.now(),
+        }),
+        { EX: ttl },
+      )
+
+      void fastify.audit(
+        user.id,
+        'recording.playback_share_created',
+        { recordingId: id },
+        request.ip,
+      )
+
+      return reply.code(201).send({
+        playbackToken: token,
+        expiresIn: body.expiresIn,
+        url: `/playback/${token}`,
+      })
     },
   )
 }

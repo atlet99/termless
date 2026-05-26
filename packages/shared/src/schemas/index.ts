@@ -29,3 +29,6 @@ export {
   type CreateSessionTemplateInput,
   type UpdateSessionTemplateInput,
 } from './user.js'
+
+// Re-export recording types from session.js
+export { recordingSchema, type Recording, createPlaybackShareSchema } from './session.js'

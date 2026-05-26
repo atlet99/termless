@@ -27,15 +27,24 @@ const SYSTEM_UID_MAX = 60000
 const DEFAULT_DISK_QUOTA_MB = 1024 // 1GB default
 
 /**
- * Checks disk usage against quota for a user's workspace
+ * Checks disk usage against quota for a user's workspace using dust
  */
 async function checkDiskQuota(
   workspacePath: string,
   quotaMb: number,
 ): Promise<{ allowed: boolean; usageMb: number }> {
   try {
-    const { stdout } = await execAsync(`du -sm "${workspacePath}" 2>/dev/null || echo 0`)
-    const usageMb = Number.parseInt(stdout.trim(), 10) || 0
+    // Use dust for faster disk usage calculation
+    // dust -o m outputs size in MiB (e.g., "1024.5 /path")
+    const { stdout } = await execAsync(
+      `dust -o m --skip-total "${workspacePath}" 2>/dev/null || echo "0 /"`,
+    )
+    // Parse: "1024.5 /path" or "1.2G /path"
+    const match = stdout
+      .split('\n')[0]
+      ?.trim()
+      .match(/^([\d.]+)\s/)
+    const usageMb = match?.[1] ? Math.ceil(Number.parseFloat(match[1])) : 0
     return { allowed: usageMb < quotaMb, usageMb }
   } catch {
     return { allowed: true, usageMb: 0 }

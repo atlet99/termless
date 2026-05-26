@@ -29,16 +29,17 @@ model User {
 }
 
 model Session {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String?
   tool        Tool
-  tmuxSession String    @unique
+  tmuxSession String      @unique
   ttydPort    Int?
   lastSeenAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  recordings  Recording[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([userId])
 }
@@ -113,6 +114,7 @@ model Recording {
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   title      String?
   filePath   String
   duration   Int?
