@@ -1,4 +1,4 @@
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -26,7 +26,7 @@ COPY . .
 ENV CI=true
 RUN pnpm turbo run build --filter=@termless/api...
 
-FROM node:24-slim AS runtime
+FROM node:26-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates tmux sudo util-linux curl git openssl \
     && rm -rf /var/lib/apt/lists/*
