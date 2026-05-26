@@ -18,7 +18,8 @@
     "./metrics": {
       "import": "./dist/metrics.js",
       "types": "./dist/metrics.d.ts"
-    }
+    },
+    "./tsconfig.json": "./tsconfig.json"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
