@@ -14,7 +14,7 @@ catalog:
   pino: ^9.6.0
   prom-client: ^15.1.0
   vitest: ^3.2.0
-  '@hey-api/openapi-ts': ^0.53.0
+  '@hey-api/openapi-ts': ^0.97.3
   '@hey-api/client-fetch': ^0.8.0
 
 allowBuilds:
