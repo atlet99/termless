@@ -16,6 +16,7 @@ import { createSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
 import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
+import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
 import { triggerWebhook } from '../webhooks/index.js'
 import { exec } from 'node:child_process'
@@ -146,6 +147,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         data: {
           userId: user.id,
           name: body.name ?? null,
+          notes: body.notes ?? null,
           tool: body.tool,
           tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
           lastSeenAt: new Date(),
@@ -167,6 +169,11 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
       void fastify.audit(user.id, 'session.create', { tool: body.tool }, request.ip)
       void triggerWebhook(fastify, 'session.created', { sessionId: session.id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'session.created',
+        timestamp: new Date().toISOString(),
+        data: { sessionId: session.id, tool: body.tool },
+      })
 
       return {
         id: session.id,
@@ -221,8 +228,67 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
       void fastify.audit(user.id, 'session.delete', { sessionId: id }, request.ip)
       void triggerWebhook(fastify, 'session.terminated', { sessionId: id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'session.terminated',
+        timestamp: new Date().toISOString(),
+        data: { sessionId: id },
+      })
 
       return { ok: true }
+    },
+  )
+
+  fastify.post(
+    '/api/v1/sessions/:id/exec',
+    {
+      schema: { tags: ['sessions'], description: 'Execute command in terminal session' },
+      preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const body = request.body as { command?: string }
+      if (!body.command || typeof body.command !== 'string') {
+        return reply.code(400).send({ error: 'Missing command' })
+      }
+
+      const prisma = fastify.prisma
+      const session = await prisma.session.findUnique({ where: { id } })
+      if (!session) return reply.code(404).send({ error: 'Session not found' })
+      if (session.userId !== user.id && user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+
+      const sessionUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { systemUid: true },
+      })
+      if (!sessionUser?.systemUid) {
+        return reply.code(500).send({ error: 'User system account not found' })
+      }
+
+      try {
+        const escaped = body.command.replaceAll("'", String.raw`'\''`)
+        execAsync(
+          `sudo -u termless-user-${sessionUser.systemUid} tmux send-keys -t ${session.tmuxSession} '${escaped}' Enter`,
+        ).catch(() => {
+          // Fire-and-forget: tmux send-keys may fail if session is dead
+        })
+
+        void fastify.audit(
+          user.id,
+          'session.exec',
+          { sessionId: id, command: body.command },
+          request.ip,
+        )
+
+        return { ok: true }
+      } catch {
+        return reply.code(500).send({ error: 'Failed to execute command' })
+      }
     },
   )
 }

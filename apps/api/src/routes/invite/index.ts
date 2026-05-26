@@ -15,6 +15,7 @@
 import crypto from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { eventBus } from '../../lib/event-bus.js'
 
 function getInviteTtl(expiresIn: string): number {
   switch (expiresIn) {
@@ -77,6 +78,12 @@ export async function registerInviteRoutes(fastify: FastifyInstance) {
       )
 
       void fastify.audit(user.id, 'session.invite_sent', { sessionId: id }, request.ip)
+
+      eventBus.publish(user.id, {
+        type: 'session.invite_sent',
+        timestamp: new Date().toISOString(),
+        data: { sessionId: id, inviteToken: token },
+      })
 
       return reply.code(201).send({
         inviteToken: token,

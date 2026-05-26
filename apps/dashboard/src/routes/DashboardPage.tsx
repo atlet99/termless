@@ -17,15 +17,17 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CommandPalette } from '../components/CommandPalette'
 import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
+import { EnvVarsManager } from '../components/EnvVarsManager'
 import { RecordingsList } from '../components/RecordingsList'
 import { SettingsPanel } from '../components/SettingsPanel'
+import { SnippetManager } from '../components/SnippetManager'
 import { TerminalView } from '../components/Terminal'
 import { WorkspaceManager } from '../components/WorkspaceManager'
 import { api } from '../lib/api'
 import { useNotifications } from '../lib/notifications'
 import { useAuthStore } from '../stores/auth'
 
-type Tab = 'sessions' | 'workspaces' | 'recordings'
+type Tab = 'sessions' | 'workspaces' | 'recordings' | 'env-vars' | 'snippets'
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation()
@@ -230,26 +232,30 @@ export function DashboardPage() {
         )}
 
         <div className="flex gap-4 mb-6 border-b border-zinc-800 pb-2">
-          {(['sessions', 'workspaces', 'recordings'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => {
-                setActiveTab(tab)
-              }}
-              className={`text-sm pb-1 border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-purple-500 text-purple-400'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+          {(['sessions', 'workspaces', 'recordings', 'env-vars', 'snippets'] as const).map(
+            (tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab)
+                }}
+                className={`text-sm pb-1 border-b-2 transition-colors ${
+                  activeTab === tab
+                    ? 'border-purple-500 text-purple-400'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ),
+          )}
         </div>
 
         {activeTab === 'workspaces' && <WorkspaceManager />}
         {activeTab === 'recordings' && <RecordingsList />}
+        {activeTab === 'env-vars' && <EnvVarsManager />}
+        {activeTab === 'snippets' && <SnippetManager />}
         {activeTab === 'sessions' && (
           <>
             <div className="flex gap-4 mb-8">

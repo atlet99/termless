@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import { AuditLog } from './components/AuditLog'
+import { InviteAccept } from './components/InviteAccept'
 import { ShareViewer } from './components/ShareViewer'
 import { DashboardPage } from './routes/DashboardPage'
 import { LoginPage } from './routes/LoginPage'
@@ -22,6 +23,7 @@ import { useAuthStore } from './stores/auth'
 function getRoute(): { page: string; param?: string } {
   const hash = window.location.hash.slice(1)
   if (hash.startsWith('/view/')) return { page: 'share', param: hash.slice(6) }
+  if (hash.startsWith('/invite/')) return { page: 'invite', param: hash.slice(8) }
   if (hash === '/admin/audit') return { page: 'audit' }
   return { page: 'dashboard' }
 }
@@ -49,6 +51,10 @@ export function App() {
 
   if (route.page === 'share' && route.param) {
     return <ShareViewer shareToken={route.param} />
+  }
+
+  if (route.page === 'invite' && route.param) {
+    return <InviteAccept inviteToken={route.param} />
   }
 
   if (!token) {
