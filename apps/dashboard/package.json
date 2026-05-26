@@ -34,7 +34,7 @@
     "@types/node": "catalog:",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.5",
-    "@vitejs/plugin-react": "^4.5.2",
+    "@vitejs/plugin-react": "^6.0.2",
     "eslint": "catalog:",
     "eslint-plugin-n": "^18.0.1",
     "eslint-plugin-unicorn": "^64.0.0",
