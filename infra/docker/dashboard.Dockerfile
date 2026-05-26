@@ -1,4 +1,4 @@
-FROM node:24-slim AS base
+FROM node:26-slim AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 FROM base AS deps
@@ -16,7 +16,7 @@ COPY . .
 ENV CI=true
 RUN pnpm turbo run build --filter=@termless/dashboard...
 
-FROM node:24-slim AS runtime
+FROM node:26-slim AS runtime
 WORKDIR /app
 COPY --from=build /app/apps/dashboard/dist ./dist
 
