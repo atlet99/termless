@@ -15,6 +15,7 @@
 import { getRedisClient, getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import { startRecording } from '@termless/worker'
+import { eventBus } from '../lib/event-bus.js'
 import { triggerWebhook } from '../routes/webhooks/index.js'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
@@ -195,6 +196,11 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
             { sessionId, duration, sizeBytes },
             user.id,
           )
+          eventBus.publish(user.id, {
+            type: 'recording.completed',
+            timestamp: new Date().toISOString(),
+            data: { sessionId, duration, sizeBytes },
+          })
         }
       })
 

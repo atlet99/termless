@@ -91,6 +91,22 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
 
+      // If templateId provided, use template values as defaults
+      let resolvedTool = body.tool
+      let resolvedName = body.name
+      let resolvedWorkspaceId = body.workspaceId
+
+      if (body.templateId) {
+        const template = await prisma.sessionTemplate.findFirst({
+          where: { id: body.templateId, userId: user.id },
+        })
+        if (template) {
+          resolvedTool = template.tool
+          resolvedName = resolvedName ?? template.name
+          resolvedWorkspaceId = resolvedWorkspaceId ?? undefined
+        }
+      }
+
       const maxSessions = Number(process.env.MAX_SESSIONS_PER_USER) || 5
       const currentCount = await prisma.session.count({ where: { userId: user.id } })
       if (currentCount >= maxSessions) {
@@ -121,9 +137,9 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
 
       let workspacePath = `${workspaceRoot}/termless-user-${systemUid}`
 
-      if (body.workspaceId) {
+      if (resolvedWorkspaceId) {
         const workspace = await prisma.workspace.findFirst({
-          where: { id: body.workspaceId, userId: user.id },
+          where: { id: resolvedWorkspaceId, userId: user.id },
         })
         if (workspace?.path.startsWith(workspaceRoot)) {
           workspacePath = workspace.path
@@ -146,10 +162,10 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       const session = await prisma.session.create({
         data: {
           userId: user.id,
-          name: body.name ?? null,
+          name: resolvedName ?? null,
           notes: body.notes ?? null,
-          tool: body.tool,
-          tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
+          tool: resolvedTool,
+          tmuxSession: `termless-${systemUid}-${resolvedTool}-${Date.now()}`,
           lastSeenAt: new Date(),
         },
       })
@@ -289,6 +305,35 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       } catch {
         return reply.code(500).send({ error: 'Failed to execute command' })
       }
+    },
+  )
+
+  fastify.patch(
+    '/api/v1/sessions/:id',
+    {
+      schema: { tags: ['sessions'], description: 'Update session name/notes' },
+      preHandler: [requireRole('DEVELOPER')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const body = request.body as { name?: string; notes?: string }
+      const prisma = fastify.prisma
+
+      const session = await prisma.session.findUnique({ where: { id } })
+      if (!session) return reply.code(404).send({ error: 'Session not found' })
+      if (session.userId !== user.id && user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+
+      const data: Record<string, unknown> = {}
+      if (body.name !== undefined) data.name = body.name
+      if (body.notes !== undefined) data.notes = body.notes
+
+      const updated = await prisma.session.update({ where: { id }, data })
+      return updated
     },
   )
 }

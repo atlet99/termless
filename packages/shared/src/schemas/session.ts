@@ -21,6 +21,7 @@ export const createSessionSchema = z.object({
   name: z.string().max(100).optional(),
   workspaceId: z.string().optional(),
   notes: z.string().max(200).optional(),
+  templateId: z.string().optional(),
 })
 
 export const sessionSchema = z.object({

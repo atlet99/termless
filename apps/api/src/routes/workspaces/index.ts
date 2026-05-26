@@ -17,6 +17,7 @@ import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
+import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
 import { triggerWebhook } from '../webhooks/index.js'
 
@@ -142,6 +143,11 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       })
       void fastify.audit(user.id, 'workspace.create', { name: body.name }, request.ip)
       void triggerWebhook(fastify, 'workspace.created', { workspaceId: workspace.id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'workspace.created',
+        timestamp: new Date().toISOString(),
+        data: { workspaceId: workspace.id, name: body.name },
+      })
       return reply.code(201).send(workspace)
     },
   )
@@ -164,6 +170,11 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       await prisma.workspace.delete({ where: { id } })
       void fastify.audit(user.id, 'workspace.delete', { workspaceId: id }, request.ip)
       void triggerWebhook(fastify, 'workspace.deleted', { workspaceId: id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'workspace.deleted',
+        timestamp: new Date().toISOString(),
+        data: { workspaceId: id },
+      })
 
       return { ok: true }
     },
