@@ -1,0 +1,23 @@
+:80 {
+    handle /api/* {
+        reverse_proxy api:3000 {
+            transport http {
+                read_timeout  3600s
+                write_timeout 3600s
+            }
+        }
+    }
+
+    handle /ws/* {
+        reverse_proxy api:3000
+    }
+
+    handle {
+        reverse_proxy dashboard:5173
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

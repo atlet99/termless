@@ -14,18 +14,47 @@ COMPOSE         := docker compose
 COMPOSE_DEV     := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 PROJECT_NAME    := termless
 DOCKER_REGISTRY ?= ghcr.io/atlet99/termless
+VOLUMES_DIR     := test_results/volumes
+
+define generate_env
+@if [ ! -f .env ]; then \
+	echo "  Generating .env from .env.example with random secrets..."; \
+	_pg_pass=$$(openssl rand -hex 32) && \
+	_redis_pass=$$(openssl rand -hex 32) && \
+	cp .env.example .env && \
+	sed -i '' \
+		-e "s/^SESSION_SECRET=.*/SESSION_SECRET=$$(openssl rand -hex 32)/" \
+		-e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$$_pg_pass/" \
+		-e "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$$_redis_pass/" \
+		-e "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://termless:$$_pg_pass@postgres:5432/termless|" \
+		-e "s|^REDIS_URL=.*|REDIS_URL=redis://:$$_redis_pass@redis:6379|" \
+		-e "s|^WORKSPACE_ROOT=.*|WORKSPACE_ROOT=/workspace|" \
+		.env; \
+	echo "  .env created. Edit it to set ANTHROPIC_API_KEY etc."; \
+fi
+endef
 
 ##@ Docker
 
 up:  ## Start all services (production mode)
 	$(call log_step, "Starting Termless services")
+	$(generate_env)
+	@mkdir -p $(VOLUMES_DIR)/{workspace,postgres,redis}
 	@$(COMPOSE) up -d
 	$(call log_ok, "Services started. Run 'make logs' to follow output")
 
 up-dev:  ## Start in dev mode (with hot reload)
 	$(call log_step, "Starting Termless in dev mode")
+	$(generate_env)
+	@mkdir -p $(VOLUMES_DIR)/{workspace,postgres,redis}
 	@$(COMPOSE_DEV) up -d
-	$(call log_ok, "Dev services started")
+	$(call log_ok, "Dev services started — http://localhost:80")
+
+quickstart: build up-dev  ## Build images and start dev environment in one go
+	$(call log_section, "Quickstart ready!")
+	$(call log_info, "Dashboard : http://localhost:80")
+	$(call log_info, "API       : http://localhost:80/api")
+	$(call log_info, "Logs      : make logs")
 
 down:  ## Stop all services
 	$(call log_step, "Stopping services")
@@ -36,6 +65,7 @@ down-volumes:  ## Stop and remove volumes (⚠ deletes data)
 	$(call log_warn, "Removing ALL volumes including database data!")
 	@read -p "Type 'yes' to confirm: " confirm && [ "$$confirm" = "yes" ]
 	@$(COMPOSE) down -v
+	@rm -rf $(VOLUMES_DIR)
 	$(call log_ok, "Services and volumes removed")
 
 restart:  ## Restart all services
@@ -73,4 +103,4 @@ ps:  ## Show container status
 pull:  ## Update base images
 	@$(COMPOSE) pull
 
-.PHONY: up up-dev down down-volumes restart restart-api build build-push logs logs-api logs-db ps pull
+.PHONY: up up-dev quickstart down down-volumes restart restart-api build build-push logs logs-api logs-db ps pull

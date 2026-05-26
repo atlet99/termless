@@ -12,7 +12,10 @@
  * limitations under the License.
  */
 
+import { execFileSync } from 'node:child_process'
 import type { FastifyInstance } from 'fastify'
+
+const startTime = Date.now()
 
 export async function registerSystemRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -21,7 +24,12 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
       schema: { tags: ['system'], description: 'Liveness probe' },
     },
     async () => {
-      return { status: 'ok', timestamp: new Date().toISOString() }
+      return {
+        status: 'ok',
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+        version: process.env.npm_package_version ?? '0.1.0',
+        timestamp: new Date().toISOString(),
+      }
     },
   )
 
@@ -31,13 +39,50 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
       schema: { tags: ['system'], description: 'Readiness probe' },
     },
     async (_request, reply) => {
+      const checks: Record<string, { status: string; latencyMs?: number; freeGb?: number }> = {}
+      let overallStatus: 'ok' | 'degraded' | 'down' = 'ok'
+
+      const dbStart = Date.now()
       try {
-        const prisma = (fastify as any).prisma
-        await prisma.$queryRaw`SELECT 1`
-        return { status: 'ready', timestamp: new Date().toISOString() }
+        await fastify.prisma.$queryRaw`SELECT 1`
+        checks.database = { status: 'ok', latencyMs: Date.now() - dbStart }
       } catch {
-        return reply.code(503).send({ status: 'not ready' })
+        checks.database = { status: 'down', latencyMs: Date.now() - dbStart }
+        overallStatus = 'down'
       }
+
+      const redisUrl = process.env.REDIS_URL
+      if (redisUrl) {
+        const redisStart = Date.now()
+        try {
+          const { getRedisClient } = await import('@termless/auth')
+          const client = await getRedisClient(redisUrl)
+          await client.ping()
+          checks.redis = { status: 'ok', latencyMs: Date.now() - redisStart }
+        } catch {
+          checks.redis = { status: 'down', latencyMs: Date.now() - redisStart }
+          overallStatus = overallStatus === 'down' ? 'down' : 'degraded'
+        }
+      }
+
+      try {
+        const workspaceRoot = process.env.WORKSPACE_ROOT ?? '/workspace'
+        // eslint-disable-next-line sonarjs/no-os-command-from-path -- df is a standard system utility
+        const df = execFileSync('df', ['-BG', workspaceRoot], { encoding: 'utf8' })
+        const parts = df.trim().split(/\s+/)
+        const freeGb = Number.parseFloat(parts[3]?.replace('G', '') ?? '0')
+        checks.disk = { status: freeGb > 1 ? 'ok' : 'degraded', freeGb }
+        if (freeGb <= 1) overallStatus = overallStatus === 'down' ? 'down' : 'degraded'
+      } catch {
+        checks.disk = { status: 'unknown' }
+      }
+
+      const statusCode = overallStatus === 'down' ? 503 : 200
+      return reply.code(statusCode).send({
+        status: overallStatus,
+        checks,
+        timestamp: new Date().toISOString(),
+      })
     },
   )
 
@@ -56,8 +101,8 @@ export async function registerSystemRoutes(fastify: FastifyInstance) {
         ADMIN: ['auth', 'sessions', 'workspaces', 'admin', 'system'],
       }
 
-      const role = (request as any).user?.role ?? 'VIEWER'
-      const allowedTags = ROLE_VISIBLE_TAGS[role] ?? ROLE_VISIBLE_TAGS.VIEWER
+      const role = request.user?.role ?? 'VIEWER'
+      const allowedTags = ROLE_VISIBLE_TAGS[role] ?? []
 
       const filteredPaths: Record<string, unknown> = {}
       for (const [path, methods] of Object.entries(spec.paths ?? {})) {

@@ -14,7 +14,10 @@
 
 import { z } from 'zod'
 
-export const roleSchema = z.enum(['ADMIN', 'OPERATOR', 'DEVELOPER', 'VIEWER'])
+import { ROLE_NAMES } from '../roles.js'
+import { toolSchema } from './session.js'
+
+export const roleSchema = z.enum(ROLE_NAMES)
 
 export const userSchema = z.object({
   id: z.string(),
@@ -30,6 +33,29 @@ export const updateUserRoleSchema = z.object({
 
 export const userListSchema = z.array(userSchema)
 
-export type Role = z.infer<typeof roleSchema>
+export const sessionTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tool: toolSchema,
+  workingDir: z.string(),
+  envVars: z.string().nullable().optional(),
+  snippetIds: z.array(z.string()),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
+export const createSessionTemplateSchema = z.object({
+  name: z.string().min(1),
+  tool: toolSchema,
+  workingDir: z.string().min(1),
+  envVars: z.string().optional(),
+  snippetIds: z.array(z.string()).optional(),
+})
+
+export const updateSessionTemplateSchema = createSessionTemplateSchema.partial()
+
 export type User = z.infer<typeof userSchema>
 export type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>
+export type SessionTemplate = z.infer<typeof sessionTemplateSchema>
+export type CreateSessionTemplateInput = z.infer<typeof createSessionTemplateSchema>
+export type UpdateSessionTemplateInput = z.infer<typeof updateSessionTemplateSchema>

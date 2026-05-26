@@ -12,15 +12,16 @@
  * limitations under the License.
  */
 
-import { type ChildProcess, spawn } from 'node:child_process'
+import { spawn, type SpawnOptions as ChildProcessSpawnOptions } from 'node:child_process'
+
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:spawn')
 
 const TOOL_BINARIES: Record<string, string> = {
-  OPENCODE: 'opencode',
-  CLAUDE: 'claude',
-  BASH: 'bash',
+  opencode: 'opencode',
+  claude: 'claude',
+  bash: 'bash',
 }
 
 export interface SpawnOptions {
@@ -32,7 +33,7 @@ export interface SpawnOptions {
   env?: Record<string, string>
 }
 
-export function spawnIsolatedProcess(options: SpawnOptions): ChildProcess {
+export function spawnIsolatedProcess(options: SpawnOptions): ReturnType<typeof spawn> {
   const { userId, systemUid, tool, sessionId, workspacePath, env } = options
   const toolBinary = TOOL_BINARIES[tool]
   if (!toolBinary) {
@@ -43,9 +44,9 @@ export function spawnIsolatedProcess(options: SpawnOptions): ChildProcess {
 
   logger.info({ userId, tool, sessionId, tmuxSession }, 'Spawning isolated process')
 
-  const args: string[] = [
+  const commandArguments: string[] = [
     '-u',
-    `termless-user-${systemUid}`,
+    `termless-user-${String(systemUid)}`,
     'unshare',
     '--pid',
     '--mount',
@@ -60,24 +61,26 @@ export function spawnIsolatedProcess(options: SpawnOptions): ChildProcess {
     workspacePath,
   ]
 
-  if (tool !== 'BASH') {
-    args.push(toolBinary)
+  if (tool !== 'bash') {
+    commandArguments.push(toolBinary)
   }
 
-  const child = spawn('sudo', args, {
+  const spawnOptions: ChildProcessSpawnOptions = {
     cwd: workspacePath,
     env: {
       HOME: workspacePath,
-      PATH: process.env.PATH,
+      PATH: process.env.PATH ?? '',
       TERM: 'xterm-256color',
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: true,
-  })
+  }
 
-  child.on('error', (err) => {
-    logger.error({ err, userId, tool }, 'Failed to spawn process')
+  const child = spawn('sudo', commandArguments, spawnOptions)
+
+  child.on('error', (error) => {
+    logger.error({ error, userId, tool }, 'Failed to spawn process')
   })
 
   child.on('exit', (code) => {
@@ -89,5 +92,12 @@ export function spawnIsolatedProcess(options: SpawnOptions): ChildProcess {
 
 export function killProcess(tmuxSession: string, systemUid: number): void {
   logger.info({ tmuxSession }, 'Killing tmux session')
-  spawn('sudo', ['-u', `termless-user-${systemUid}`, 'tmux', 'kill-session', '-t', tmuxSession])
+  spawn('sudo', [
+    '-u',
+    `termless-user-${String(systemUid)}`,
+    'tmux',
+    'kill-session',
+    '-t',
+    tmuxSession,
+  ])
 }

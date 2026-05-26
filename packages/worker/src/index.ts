@@ -12,7 +12,9 @@
  * limitations under the License.
  */
 
+export * from './provision.js'
 export * from './spawn.js'
 export * from './ttyd.js'
 export * from './tmux.js'
 export * from './sudoers.js'
+export * from './recording.js'

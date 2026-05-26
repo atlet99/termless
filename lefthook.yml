@@ -1,0 +1,18 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{ts,tsx,js,jsx,json,css}"
+      run: pnpm exec biome check --write {staged_files}
+      stage_fixed: true
+    markdown:
+      glob: "*.md"
+      run: pnpm exec markdownlint-cli2 --fix {staged_files}
+
+pre-push:
+  parallel: false
+  commands:
+    typecheck:
+      run: pnpm typecheck
+    test:
+      run: pnpm test

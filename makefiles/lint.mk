@@ -10,27 +10,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-lint:  ## Run ESLint (type-aware) + Biome (format)
-	$(call log_step, "Running ESLint")
-	@pnpm turbo run lint
-	$(call log_step, "Running Biome format check")
-	@pnpm biome check .
+##@ Lint
+
+lint:  ## Run ESLint per-package + Biome — all errors together
+	$(call log_step, "Running ESLint - all packages")
+	@pnpm turbo run lint --continue
+	$(call log_step, "Running Biome check")
+	@pnpm exec biome check .
 	$(call log_ok, "All checks passed")
 
 lint-fix:  ## Auto-fix ESLint + Biome issues
 	$(call log_step, "Fixing ESLint issues")
-	@pnpm turbo run lint:fix
+	@pnpm turbo run lint:fix --continue
 	$(call log_step, "Fixing Biome issues")
-	@pnpm biome check --write .
+	@pnpm exec biome check --write .
 	$(call log_ok, "All fixes applied")
 
-biome:  ## Run Biome only (lint + format check)
-	@pnpm biome check .
+lint-root:  ## Run ESLint from root (single pass, may have React plugin issues)
+	@pnpm exec eslint . --max-warnings=0
 
-biome-fix:  ## Run Biome auto-fix only
-	@pnpm biome check --write .
+biome:  ## Run Biome check (lint + format)
+	@pnpm exec biome check .
 
-format:  ## Format code (Biome)
-	@pnpm biome format --write .
+biome-fix:  ## Auto-fix Biome issues
+	@pnpm exec biome check --write .
 
-.PHONY: lint lint-fix biome biome-fix format
+format-only:  ## Format code only (Biome formatter)
+	@pnpm exec biome format --write .
+
+format-check:  ## Check formatting without changes
+	@pnpm exec biome format .
+
+.PHONY: lint lint-fix lint-root biome biome-fix format-only format-check

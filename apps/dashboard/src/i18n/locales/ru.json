@@ -20,7 +20,8 @@
   "session": {
     "newOpencode": "+ Opencode",
     "newClaude": "+ Claude",
-    "newBash": "+ Bash"
+    "newBash": "+ Bash",
+    "connected": "Подключено к терминалу Termless"
   },
   "common": {
     "error": "Ошибка"

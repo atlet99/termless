@@ -1,0 +1,14 @@
+.git
+node_modules
+.pnpm-store
+.turbo
+dist
+coverage
+.env
+.env.*
+!.env.example
+.vscode
+.idea
+*.tsbuildinfo
+backups
+test_results

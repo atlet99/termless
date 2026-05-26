@@ -12,12 +12,13 @@
  * limitations under the License.
  */
 
+import type { RedisClientType } from 'redis'
 import type { AuthenticatedUser } from '@termless/shared'
 import { createClient } from 'redis'
 
-let redisClient: ReturnType<typeof createClient> | null = null
+let redisClient: RedisClientType | null = null
 
-export async function getRedisClient(redisUrl: string) {
+export async function getRedisClient(redisUrl: string): Promise<RedisClientType> {
   if (!redisClient) {
     redisClient = createClient({ url: redisUrl })
     redisClient.on('error', (err) => console.error('Redis error:', err))
@@ -41,10 +42,17 @@ export async function createSession(
 export async function getSession(
   redisUrl: string,
   token: string,
+  ttlSeconds?: number,
 ): Promise<AuthenticatedUser | null> {
   const client = await getRedisClient(redisUrl)
-  const data = await client.get(`termless:session:${token}`)
+  const key = `termless:session:${token}`
+  const data = await client.get(key)
   if (!data) return null
+
+  if (ttlSeconds) {
+    await client.expire(key, ttlSeconds)
+  }
+
   return JSON.parse(data) as AuthenticatedUser
 }
 

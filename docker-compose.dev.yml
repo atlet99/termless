@@ -25,3 +25,11 @@ services:
       - "5173:5173"
     environment:
       - NODE_ENV=development
+
+  caddy:
+    image: caddy:2.9-alpine
+    restart: unless-stopped
+    ports: ["80:80"]
+    volumes:
+      - ./infra/caddy/Caddyfile.dev:/etc/caddy/Caddyfile
+    networks: [termless]

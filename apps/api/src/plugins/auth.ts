@@ -14,6 +14,8 @@
 
 import cookie from '@fastify/cookie'
 import session from '@fastify/session'
+import crypto from 'node:crypto'
+import type { AuthenticatedUser } from '@termless/shared'
 import { getSession } from '@termless/auth'
 import fp from 'fastify-plugin'
 
@@ -29,9 +31,10 @@ export const register = fp(async (fastify) => {
     },
   })
 
-  fastify.decorateRequest('user', null)
+  fastify.decorateRequest('user', undefined as unknown as AuthenticatedUser)
 
   const redisUrl = process.env.REDIS_URL
+  const sessionTtlSeconds = Number(process.env.SESSION_TTL_HOURS ?? 8) * 60 * 60
 
   fastify.addHook('onRequest', async (request, _reply) => {
     if (!redisUrl) return
@@ -40,7 +43,34 @@ export const register = fp(async (fastify) => {
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7)
-      const user = await getSession(redisUrl, token)
+
+      // Check API token first
+      if (token.startsWith('ttls_')) {
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
+        const apiToken = await fastify.prisma.apiToken.findUnique({
+          where: { tokenHash },
+          include: { user: true },
+        })
+
+        if (apiToken && (!apiToken.expiresAt || apiToken.expiresAt > new Date())) {
+          const user: AuthenticatedUser = {
+            id: apiToken.user.id,
+            email: apiToken.user.email,
+            displayName: apiToken.user.displayName ?? null,
+            role: apiToken.user.role,
+          }
+          request.user = user
+
+          // Update last used asynchronously
+          void fastify.prisma.apiToken.update({
+            where: { tokenHash },
+            data: { lastUsed: new Date() },
+          })
+          return
+        }
+      }
+
+      const user = await getSession(redisUrl, token, sessionTtlSeconds)
       if (user) {
         request.user = user
         return
@@ -48,7 +78,7 @@ export const register = fp(async (fastify) => {
     }
 
     if (cookieToken) {
-      const user = await getSession(redisUrl, cookieToken)
+      const user = await getSession(redisUrl, cookieToken, sessionTtlSeconds)
       if (user) {
         request.user = user
         return

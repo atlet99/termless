@@ -13,22 +13,15 @@
  */
 
 import type { Role } from '@termless/shared'
+import { hasRole } from '@termless/shared'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
 
-const ROLE_HIERARCHY: Record<Role, number> = {
-  VIEWER: 0,
-  DEVELOPER: 1,
-  OPERATOR: 2,
-  ADMIN: 3,
-}
-
-export function hasRole(userRole: Role | undefined, requiredRole: Role): boolean {
-  if (!userRole) return false
-  return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[requiredRole] ?? 0)
-}
+// eslint-disable-next-line unicorn/prefer-export-from -- hasRole is used locally
+export { hasRole }
 
 export function requireRole(role: Role) {
-  return async (request: any, reply: any) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
       return reply
         .code(401)
@@ -38,6 +31,34 @@ export function requireRole(role: Role) {
       return reply
         .code(403)
         .send({ error: 'Forbidden', message: 'Insufficient permissions', statusCode: 403 })
+    }
+  }
+}
+
+export function requireAdminIpAllowlist() {
+  const ADMIN_IP_ALLOWLIST =
+    process.env.ADMIN_IP_ALLOWLIST?.split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean) ?? []
+
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (ADMIN_IP_ALLOWLIST.length === 0) {
+      return
+    }
+
+    const forwarded = request.headers['x-forwarded-for']
+    let clientIp: string
+    if (typeof forwarded === 'string' && forwarded.length > 0) {
+      const parts = forwarded.split(',')
+      clientIp = parts[0]?.trim() ?? 'unknown'
+    } else {
+      clientIp = request.ip ?? 'unknown'
+    }
+
+    if (!ADMIN_IP_ALLOWLIST.includes(clientIp)) {
+      return reply
+        .code(403)
+        .send({ error: 'Forbidden', message: 'IP not allowed for admin access', statusCode: 403 })
     }
   }
 }

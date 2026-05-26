@@ -1,4 +1,5 @@
 import { PrismaClient, Role } from '@prisma/client'
+import { hashPassword } from '@termless/auth'
 
 const prisma = new PrismaClient()
 
@@ -17,10 +18,13 @@ async function main() {
     return
   }
 
+  const passwordHash = await hashPassword(adminPassword)
+
   await prisma.user.create({
     data: {
       email: adminEmail,
       displayName: 'Administrator',
+      passwordHash,
       role: Role.ADMIN,
     },
   })

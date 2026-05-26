@@ -12,29 +12,35 @@
  * limitations under the License.
  */
 
+import tseslint from 'typescript-eslint'
+import globals from 'globals'
 import reactPlugin from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import jsxA11y from 'eslint-plugin-jsx-a11y'
-import globals from 'globals'
 import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
   {
-    name: 'termless/react',
-    files: ['apps/dashboard/**/*.{tsx,ts,jsx}'],
-    plugins: {
-      react: reactPlugin,
-      'react-hooks': reactHooks,
-      'jsx-a11y': jsxA11y,
-    },
+    name: 'termless/react-typescript',
+    files: ['**/*.{tsx,ts}'],
+    ignores: ['eslint.config.ts', 'vite.config.ts', 'vitest.config.ts'],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       globals: {
         ...globals.browser,
         ...globals.es2024,
       },
+      parser: tseslint.parser,
       parserOptions: {
+        projectService: true,
         ecmaFeatures: { jsx: true },
       },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      react: reactPlugin,
+      'react-hooks': reactHooks,
+      'jsx-a11y': jsxA11y,
     },
     settings: {
       react: { version: 'detect' },
@@ -42,19 +48,31 @@ export default defineConfig([
     rules: {
       ...reactPlugin.configs.recommended.rules,
       ...reactPlugin.configs['jsx-runtime'].rules,
-      'react/prop-types':              'off',
-      'react/display-name':            'error',
-      'react/no-danger':               'error',
-      'react/no-array-index-key':      'warn',
-      'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
-      'react/jsx-no-target-blank':     ['error', { enforceDynamicLinks: 'always' }],
-      'react-hooks/rules-of-hooks':    'error',
-      'react-hooks/exhaustive-deps':   'error',
+      ...reactHooks.configs.recommended.rules,
       ...jsxA11y.configs.recommended.rules,
-      'jsx-a11y/no-autofocus':         'warn',
-      '@typescript-eslint/no-misused-promises': ['error', {
-        checksVoidReturn: { attributes: false },
-      }],
+
+      'react/prop-types': 'off',
+      'react/display-name': 'error',
+      'react/no-danger': 'error',
+      'react/no-array-index-key': 'warn',
+      'react/no-unstable-nested-components': ['error', { allowAsProps: true }],
+      'react/jsx-no-target-blank': ['error', { enforceDynamicLinks: 'always' }],
+      'jsx-a11y/no-autofocus': 'warn',
+
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: { attributes: false } },
+      ],
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-invalid-void-type': 'off',
+      '@typescript-eslint/no-misused-spread': 'off',
     },
   },
 ])

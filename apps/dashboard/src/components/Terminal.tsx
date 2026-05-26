@@ -13,48 +13,59 @@
  */
 
 import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon } from '@xterm/addon-search'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import i18n from '../i18n'
+import { TERMINAL_THEMES } from '../lib/terminal-themes'
 
 interface TerminalViewProps {
   sessionId: string
+  theme?: string
+  fontFamily?: string
+  fontSize?: number
+  cursorStyle?: string
 }
 
-export function TerminalView({ sessionId }: TerminalViewProps) {
+export function TerminalView({
+  sessionId,
+  theme = 'tokyo-night',
+  fontFamily = 'JetBrains Mono',
+  fontSize = 15,
+  cursorStyle = 'block',
+}: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
+  const searchAddonRef = useRef<SearchAddon | null>(null)
+  const [reconnectAttempt, setReconnectAttempt] = useState(0)
+  const [isConnected, setIsConnected] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (!containerRef.current) return
 
+    const termTheme = TERMINAL_THEMES[theme] ?? TERMINAL_THEMES['tokyo-night']
+    if (!termTheme) return
+
     const term = new Terminal({
-      cursorBlink: true,
-      fontSize: 15,
-      fontFamily: 'JetBrains Mono, Cascadia Code, monospace',
-      theme: {
-        foreground: '#a9b1d6',
-        background: '#1a1b26',
-        cursor: '#c0caf5',
-        cursorAccent: '#1a1b26',
-        selectionBackground: '#33467c',
-        black: '#15161e',
-        red: '#f7768e',
-        green: '#9ece6a',
-        yellow: '#e0af68',
-        blue: '#7aa2f7',
-        magenta: '#bb9af7',
-        cyan: '#7dcfff',
-        white: '#a9b1d6',
-      },
+      cursorBlink: cursorStyle !== 'block',
+      cursorStyle: cursorStyle as 'block' | 'underline' | 'bar',
+      fontSize,
+      fontFamily: `${fontFamily}, Cascadia Code, monospace`,
+      theme: termTheme,
     })
 
     const fitAddon = new FitAddon()
     const webLinksAddon = new WebLinksAddon()
+    const searchAddon = new SearchAddon()
 
     term.loadAddon(fitAddon)
     term.loadAddon(webLinksAddon)
+    term.loadAddon(searchAddon)
+    searchAddonRef.current = searchAddon
 
     term.open(containerRef.current)
 
@@ -67,25 +78,51 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
     fitAddon.fit()
     termRef.current = term
 
-    const token = localStorage.getItem('termless_token')
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${protocol}//${window.location.host}/ws/terminal/${sessionId}`
-    const socket = new WebSocket(wsUrl, ['bearer', token ?? ''].join('.'))
+    let socket: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let attempt = 0
 
-    socket.onopen = () => {
-      term.writeln('\x1b[1;32mConnected to Termless terminal\x1b[0m\r')
+    function connect() {
+      const token = localStorage.getItem('termless_token')
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${window.location.host}/ws/terminal/${sessionId}`
+      socket = new WebSocket(wsUrl, ['bearer', token ?? ''].join('.'))
+
+      socket.onopen = () => {
+        attempt = 0
+        setReconnectAttempt(0)
+        setIsConnected(true)
+        term.writeln(`\x1b[1;32m${i18n.t('session.connected')}\x1b[0m\r`)
+      }
+
+      socket.onmessage = (event) => {
+        const data =
+          typeof event.data === 'string'
+            ? event.data
+            : new TextDecoder().decode(event.data as ArrayBuffer)
+        term.write(data)
+      }
+
+      socket.onclose = () => {
+        setIsConnected(false)
+        attempt++
+        setReconnectAttempt(attempt)
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 30_000)
+        term.writeln(
+          `\r\n\x1b[1;33mReconnecting... (attempt ${attempt}, ${Math.round(delay / 1000)}s)\x1b[0m\r`,
+        )
+        reconnectTimer = setTimeout(connect, delay)
+      }
+
+      socket.onerror = () => {
+        socket?.close()
+      }
     }
 
-    socket.onmessage = (event) => {
-      const data =
-        typeof event.data === 'string'
-          ? event.data
-          : new TextDecoder().decode(event.data as ArrayBuffer)
-      term.write(data)
-    }
+    connect()
 
     term.onData((data) => {
-      if (socket.readyState === WebSocket.OPEN) {
+      if (socket?.readyState === WebSocket.OPEN) {
         socket.send(data)
       }
     })
@@ -94,12 +131,7 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
       const sel = term.getSelection()
       if (sel.length > 0) {
         navigator.clipboard.writeText(sel).catch(() => {
-          const ta = document.createElement('textarea')
-          ta.value = sel
-          document.body.appendChild(ta)
-          ta.select()
-          document.execCommand('copy')
-          document.body.removeChild(ta)
+          void 0
         })
       }
     })
@@ -107,11 +139,21 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
     term.attachCustomKeyEventHandler((e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         e.preventDefault()
-        navigator.clipboard.readText().then((text) => {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(`\x1b[200~${text}\x1b[201~`)
-          }
-        })
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (socket?.readyState === WebSocket.OPEN) {
+              socket.send(`\x1b[200~${text}\x1b[201~`)
+            }
+          })
+          .catch(() => {
+            // ignore clipboard read errors
+          })
+        return false
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault()
+        setShowSearch((prev) => !prev)
         return false
       }
       return true
@@ -124,10 +166,81 @@ export function TerminalView({ sessionId }: TerminalViewProps) {
 
     return () => {
       resizeObserver.disconnect()
-      socket.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      socket?.close()
       term.dispose()
     }
-  }, [sessionId])
+  }, [sessionId, theme, fontFamily, fontSize, cursorStyle])
 
-  return <div ref={containerRef} className="h-full w-full" />
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {showSearch && (
+        <div className="absolute top-2 right-2 flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 shadow-lg">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              searchAddonRef.current?.findNext(e.target.value)
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (e.shiftKey) {
+                  searchAddonRef.current?.findPrevious(searchQuery)
+                } else {
+                  searchAddonRef.current?.findNext(searchQuery)
+                }
+              }
+              if (e.key === 'Escape') {
+                setShowSearch(false)
+                setSearchQuery('')
+              }
+            }}
+            placeholder="Search..."
+            className="w-48 bg-transparent text-sm text-zinc-100 outline-none placeholder:text-zinc-500"
+            ref={(input) => {
+              if (input) input.focus()
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => {
+              searchAddonRef.current?.findPrevious(searchQuery)
+            }}
+            className="text-zinc-400 hover:text-zinc-100"
+          >
+            &uarr;
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              searchAddonRef.current?.findNext(searchQuery)
+            }}
+            className="text-zinc-400 hover:text-zinc-100"
+          >
+            &darr;
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowSearch(false)
+              setSearchQuery('')
+            }}
+            className="text-zinc-400 hover:text-zinc-100"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+      {!isConnected && reconnectAttempt > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-purple-500" />
+            <p className="text-sm text-zinc-400">Reconnecting... (attempt {reconnectAttempt})</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

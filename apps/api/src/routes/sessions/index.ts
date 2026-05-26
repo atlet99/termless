@@ -12,15 +12,52 @@
  * limitations under the License.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { createSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
-import { startTtyd } from '@termless/worker'
+import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import { requireRole } from '../../plugins/rbac.js'
+import { triggerWebhook } from '../webhooks/index.js'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
+
+const execAsync = promisify(exec)
+
+const SYSTEM_UID_MIN = 2000
+const SYSTEM_UID_MAX = 60000
+const DEFAULT_DISK_QUOTA_MB = 1024 // 1GB default
+
+/**
+ * Checks disk usage against quota for a user's workspace using dust
+ */
+async function checkDiskQuota(
+  workspacePath: string,
+  quotaMb: number,
+): Promise<{ allowed: boolean; usageMb: number }> {
+  try {
+    // Use dust for faster disk usage calculation
+    // dust -o m outputs size in MiB (e.g., "1024.5 /path")
+    const { stdout } = await execAsync(
+      `dust -o m --skip-total "${workspacePath}" 2>/dev/null || echo "0 /"`,
+    )
+    // Parse: "1024.5 /path" or "1.2G /path"
+    const match = stdout
+      .split('\n')[0]
+      ?.trim()
+      .match(/^([\d.]+)\s/)
+    const usageMb = match?.[1] ? Math.ceil(Number.parseFloat(match[1])) : 0
+    return { allowed: usageMb < quotaMb, usageMb }
+  } catch {
+    return { allowed: true, usageMb: 0 }
+  }
+}
+
+async function getDiskQuotaMb(): Promise<number> {
+  return Number(process.env.DISK_QUOTA_MB) || DEFAULT_DISK_QUOTA_MB
+}
 
 export async function registerSessionRoutes(fastify: FastifyInstance) {
-  const workspaceRoot = process.env.WORKSPACE_ROOT
+  const workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace'
 
   fastify.get(
     '/api/v1/sessions',
@@ -29,8 +66,9 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       preHandler: [requireRole('DEVELOPER')],
     },
     async (request) => {
-      const prisma = (fastify as any).prisma as PrismaClient
-      const userId = (request as any).user.id
+      const prisma = fastify.prisma
+      const userId = request.user?.id
+      if (!userId) return []
       const sessions = await prisma.session.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -44,11 +82,13 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     {
       schema: { tags: ['sessions'], description: 'Create terminal session' },
       preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
     },
     async (request, reply) => {
       const body = createSessionSchema.parse(request.body)
-      const user = (request as any).user
-      const prisma = (fastify as any).prisma as PrismaClient
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+      const prisma = fastify.prisma
 
       const maxSessions = Number(process.env.MAX_SESSIONS_PER_USER) || 5
       const currentCount = await prisma.session.count({ where: { userId: user.id } })
@@ -56,32 +96,77 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         return reply.code(429).send({ error: 'Session limit reached' })
       }
 
-      const session = await prisma.session.create({
-        data: {
-          userId: user.id,
-          tool: body.tool,
-          tmuxSession: `termless-${user.id}-${body.tool}-${Date.now()}`,
-        },
-      })
+      let systemUid = user.systemUid
 
-      const workspacePath = `${workspaceRoot}/termless-user-${user.id}`
-
-      if (user.systemUid) {
-        const port = 10000 + Math.floor(Math.random() * 50000)
-        startTtyd({
-          port,
-          userId: user.systemUid,
-          tmuxSession: session.tmuxSession,
-          workspacePath,
+      if (!systemUid) {
+        /* eslint-disable @typescript-eslint/naming-convention -- Prisma aggregate API */
+        const maxResult = await prisma.user.aggregate({
+          _max: { systemUid: true },
         })
-        await prisma.session.update({
-          where: { id: session.id },
-          data: { ttydPort: port },
+        /* eslint-enable @typescript-eslint/naming-convention */
+        const nextUid = Math.max(
+          SYSTEM_UID_MIN,
+          (maxResult._max.systemUid || SYSTEM_UID_MIN - 1) + 1,
+        )
+        if (nextUid > SYSTEM_UID_MAX) {
+          return reply.code(503).send({ error: 'User capacity exhausted' })
+        }
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { systemUid: nextUid },
+        })
+        systemUid = nextUid
+      }
+
+      let workspacePath = `${workspaceRoot}/termless-user-${systemUid}`
+
+      if (body.workspaceId) {
+        const workspace = await prisma.workspace.findFirst({
+          where: { id: body.workspaceId, userId: user.id },
+        })
+        if (workspace?.path.startsWith(workspaceRoot)) {
+          workspacePath = workspace.path
+        }
+      }
+
+      // Check disk quota before provisioning
+      const quotaMb = await getDiskQuotaMb()
+      const { allowed, usageMb } = await checkDiskQuota(workspacePath, quotaMb)
+      if (!allowed) {
+        return reply.code(507).send({
+          error: 'Disk quota exceeded',
+          usageMb,
+          quotaMb,
         })
       }
 
+      await provisionOsUser(systemUid, workspacePath, user.role)
+
+      const session = await prisma.session.create({
+        data: {
+          userId: user.id,
+          name: body.name ?? null,
+          tool: body.tool,
+          tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
+          lastSeenAt: new Date(),
+        },
+      })
+
+      const port = 10000 + Math.floor(Math.random() * 50000)
+      startTtyd({
+        port,
+        userId: systemUid,
+        tmuxSession: session.tmuxSession,
+        workspacePath,
+      })
+      await prisma.session.update({
+        where: { id: session.id },
+        data: { ttydPort: port },
+      })
+
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
-      ;(fastify as any).audit?.(user.id, 'session.create', { tool: body.tool }, request.ip)
+      void fastify.audit(user.id, 'session.create', { tool: body.tool }, request.ip)
+      void triggerWebhook(fastify, 'session.created', { sessionId: session.id }, user.id)
 
       return {
         id: session.id,
@@ -100,8 +185,9 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string }
-      const user = (request as any).user
-      const prisma = (fastify as any).prisma as PrismaClient
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+      const prisma = fastify.prisma
 
       const session = await prisma.session.findUnique({ where: { id } })
       if (!session) {
@@ -117,8 +203,24 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       }
 
       await prisma.session.delete({ where: { id } })
+
+      const remainingSessions = await prisma.session.count({
+        where: { userId: session.userId },
+      })
+      if (remainingSessions === 0) {
+        const sessionUser = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { systemUid: true },
+        })
+        if (sessionUser?.systemUid) {
+          const { removeSudoersFile } = await import('@termless/worker')
+          await removeSudoersFile(sessionUser.systemUid)
+        }
+      }
+
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
-      ;(fastify as any).audit?.(user.id, 'session.delete', { sessionId: id }, request.ip)
+      void fastify.audit(user.id, 'session.delete', { sessionId: id }, request.ip)
+      void triggerWebhook(fastify, 'session.terminated', { sessionId: id }, user.id)
 
       return { ok: true }
     },

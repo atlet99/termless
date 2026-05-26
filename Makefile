@@ -23,13 +23,12 @@ ifeq ($(NVMRC),)
   $(error .nvmrc not found or empty)
 endif
 
-# Source nvm if available, then use the version from .nvmrc
-define NVM_USE
-[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh"; nvm use --silent 2>/dev/null || nvm install --lts 2>/dev/null
-endef
+# Ensure node from nvm is used - executed at Makefile parse time
+$(shell [ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent 2>/dev/null || nvm install --lts 2>/dev/null)
 
-# Export so all recipe lines inherit the correct node
-export PATH := $(shell bash -c '[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent >/dev/null 2>&1 && echo $$PATH')
+# Export PATH with nvm node for all recipe lines
+export PATH := $(shell bash -lc '[ -s "$(NVM_DIR)/nvm.sh" ] && . "$(NVM_DIR)/nvm.sh" && nvm use --silent >/dev/null 2>&1 && echo $$PATH')
+export NVM_DIR
 
 include makefiles/colors.mk
 include makefiles/help.mk
@@ -47,8 +46,14 @@ setup: install db-generate db-migrate db-seed license-add  ## Full initial proje
 	$(call log_info, "Run 'make up-dev' to start in dev mode")
 	$(call log_info, "Run 'make up' to start in production mode")
 
-ci: lint typecheck test openapi-ci  ## Full CI pipeline check
+ci: lint typecheck test openapi-ci docs-lint knip  ## Full CI pipeline check
 	$(call log_section, "CI checks passed!")
+
+ci-security: packages-audit  ## Security-focused CI checks
+	$(call log_section, "Security checks passed!")
+
+sdk-ci: sdk-gen lint  ## SDK generation and lint check
+	$(call log_section, "SDK CI passed!")
 
 check-env:  ## Check required environment variables
 	$(call log_step, "Checking environment")
@@ -69,4 +74,4 @@ version:  ## Show tool versions
 token:  ## Generate a secure random token (32 bytes)
 	@printf "$(BGREEN)%s$(RESET)\n" "$$(openssl rand -hex 32)"
 
-.PHONY: setup ci check-env version token
+.PHONY: setup ci ci-security check-env version token

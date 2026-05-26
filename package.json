@@ -1,52 +1,61 @@
 {
   "name": "termless",
   "private": true,
-  "type": "module",
   "license": "Apache-2.0",
+  "type": "module",
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "lint:root": "eslint .",
-    "lint:fix": "turbo run lint:fix",
-    "format": "biome format --write .",
     "biome": "biome check .",
     "biome:fix": "biome check --write .",
-    "typecheck": "turbo run typecheck",
+    "build": "turbo run build",
+    "check": "turbo run check",
+    "check:root": "biome check .",
+    "ci:all": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm docs:lint && pnpm test && pnpm build",
+    "ci:lint": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm knip && pnpm docs:lint",
+    "ci:security": "pnpm secrets:scan && pnpm packages:audit",
+    "dev": "turbo run dev",
+    "docs:lint": "markdownlint-cli2 \"**/*.md\" \"#**/node_modules/**\"",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "postinstall": "prisma generate",
+    "knip": "knip",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "lint:inspect": "npx @eslint/config-inspector@latest",
+    "lint:root": "eslint .",
+    "packages:audit": "pnpm audit --audit-level high",
+    "packages:dedupe": "pnpm dedupe --check",
+    "packages:sort": "sort-package-json \"package.json\" \"apps/*/package.json\" \"packages/*/package.json\"",
+    "secrets:scan": "gitleaks detect --source . --redact --verbose",
     "test": "turbo run test",
-    "test:e2e": "playwright test",
-    "lint:inspect": "npx @eslint/config-inspector@latest"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "prisma": "^7.8.0",
-    "tsx": "^4.22.3",
-    "turbo": "^2.5.0",
-    "typescript": "^5.8.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "@typescript-eslint/utils": "^8.59.4",
-      "@typescript-eslint/type-utils": "^8.59.4",
-      "@typescript-eslint/tsconfig-utils": "^8.59.4",
-      "@typescript-eslint/scope-manager": "^8.59.4",
-      "@typescript-eslint/types": "^8.59.4",
-      "@typescript-eslint/visitor-keys": "^8.59.4"
-    },
-    "onlyBuiltDependencies": [
-      "@biomejs/biome",
-      "@prisma/engines",
-      "argon2",
-      "esbuild",
-      "prisma",
-      "unrs-resolver"
-    ]
-  },
-  "packageManager": "pnpm@10.12.1",
-  "engines": {
-    "node": ">=24.0.0"
+    "typecheck": "turbo run typecheck"
   },
   "dependencies": {
-    "@prisma/client": "^7.8.0"
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@types/pg": "^8.20.0",
+    "@xterm/addon-search": "^0.16.0",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@redocly/cli": "^2.31.4",
+    "@types/jsdom": "^28.0.3",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "^4.1.7",
+    "jsdom": "^29.1.1",
+    "knip": "^6.14.2",
+    "lefthook": "^2.1.8",
+    "markdownlint-cli2": "^0.22.1",
+    "prisma": "^7.8.0",
+    "sort-package-json": "^3.6.1",
+    "tsx": "^4.22.3",
+    "turbo": "^2.5.0",
+    "typescript": "catalog:",
+    "vitest": "^4.1.7"
+  },
+  "packageManager": "pnpm@11.2.1",
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

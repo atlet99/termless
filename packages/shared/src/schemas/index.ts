@@ -15,4 +15,20 @@
 export * from './auth.js'
 export * from './session.js'
 export * from './workspace.js'
-export * from './user.js'
+export {
+  roleSchema,
+  userSchema,
+  updateUserRoleSchema,
+  userListSchema,
+  sessionTemplateSchema,
+  createSessionTemplateSchema,
+  updateSessionTemplateSchema,
+  type User,
+  type UpdateUserRoleInput,
+  type SessionTemplate,
+  type CreateSessionTemplateInput,
+  type UpdateSessionTemplateInput,
+} from './user.js'
+
+// Re-export recording types from session.js
+export { recordingSchema, type Recording, createPlaybackShareSchema } from './session.js'

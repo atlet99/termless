@@ -12,7 +12,10 @@
  * limitations under the License.
  */
 
-export type Role = 'ADMIN' | 'OPERATOR' | 'DEVELOPER' | 'VIEWER'
+import type { Role } from '../roles.js'
+
+// eslint-disable-next-line unicorn/prefer-export-from -- Role is used locally
+export type { Role }
 
 export type Tool = 'OPENCODE' | 'CLAUDE' | 'BASH'
 
@@ -29,12 +32,12 @@ export interface AuthenticatedUser {
   email: string
   displayName: string | null
   role: Role
+  systemUid?: number
 }
 
-declare module 'fastify' {
-  interface FastifyRequest {
-    user?: AuthenticatedUser
-  }
+export interface PaginationQuery {
+  page?: number
+  limit?: number
 }
 
 export interface ApiResponse<T> {
@@ -45,9 +48,4 @@ export interface ApiError {
   error: string
   message: string
   statusCode: number
-}
-
-export interface PaginationQuery {
-  page?: number
-  limit?: number
 }

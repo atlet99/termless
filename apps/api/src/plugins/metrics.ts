@@ -27,7 +27,7 @@ function isInternalIP(ip: string): boolean {
 
 export const register = fp(async (fastify) => {
   fastify.addHook('onResponse', (request, reply, done) => {
-    const route = request.routeOptions.url ?? request.url.split('?')[0]
+    const route = request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown'
     httpRequestsTotal.inc({
       method: request.method,
       route,

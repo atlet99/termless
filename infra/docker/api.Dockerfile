@@ -1,4 +1,6 @@
-FROM node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940 AS base # node:24.15.0
+FROM node:24-slim AS base
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 FROM base AS deps
@@ -8,17 +10,25 @@ COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 COPY packages/auth/package.json packages/auth/
 COPY packages/worker/package.json packages/worker/
+COPY packages/eslint-config/package.json packages/eslint-config/
+COPY prisma/schema.prisma prisma/schema.prisma
+COPY prisma/prisma.config.ts prisma/prisma.config.ts
 RUN pnpm install --frozen-lockfile --filter=@termless/api...
 
 FROM base AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/auth/node_modules ./packages/auth/node_modules
+COPY --from=deps /app/packages/worker/node_modules ./packages/worker/node_modules
 COPY . .
+ENV CI=true
 RUN pnpm turbo run build --filter=@termless/api...
 
-FROM node@sha256:f22d6a1f082c02f292e86929b5b0442ac2e5eaf438a5dea9b1566601c3e05940 AS runtime # node:24.15.0
+FROM node:24-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tmux sudo util-linux curl git \
+    ca-certificates tmux sudo util-linux curl git openssl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
@@ -28,13 +38,27 @@ RUN npm install -g @anthropic-ai/claude-code \
     && curl -fsSL https://opencode.ai/install | bash
 
 WORKDIR /app
-COPY --from=build /app/apps/api/dist ./dist
+COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=build /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=build /app/packages/auth/node_modules ./packages/auth/node_modules
+COPY --from=build /app/packages/worker/node_modules ./packages/worker/node_modules
+COPY --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build /app/packages/auth/dist ./packages/auth/dist
+COPY --from=build /app/packages/worker/dist ./packages/worker/dist
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma/prisma.config.ts ./prisma.config.ts
+COPY --from=build /app/package.json ./
+COPY --from=build /app/pnpm-workspace.yaml ./
+COPY --from=build /app/apps/api/package.json ./apps/api/
+COPY --from=build /app/packages/shared/package.json ./packages/shared/
+COPY --from=build /app/packages/auth/package.json ./packages/auth/
+COPY --from=build /app/packages/worker/package.json ./packages/worker/
+COPY infra/docker/api-entrypoint.sh /app/entrypoint.sh
 
-RUN groupadd -g 1001 termless-api \
-    && useradd -u 1001 -g termless-api -m termless-api
+RUN mkdir -p /workspace
 
-USER termless-api
 EXPOSE 3000
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["node", "apps/api/dist/index.js"]

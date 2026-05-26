@@ -7,30 +7,40 @@ datasource db {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  displayName  String?
-  passwordHash String?
-  totpSecret   String?
-  role         Role      @default(DEVELOPER)
-  systemUid    Int?      @unique
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sessions     Session[]
-  workspaces   Workspace[]
-  auditLogs    AuditLog[]
+  id               String           @id @default(cuid())
+  email            String           @unique
+  displayName      String?
+  passwordHash     String?
+  totpSecret       String?
+  totpVerified     Boolean          @default(false)
+  role             Role             @default(DEVELOPER)
+  systemUid        Int?             @unique
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sessions         Session[]
+  workspaces       Workspace[]
+  auditLogs        AuditLog[]
+  preferences      UserPreference?
+  snippets         Snippet[]
+  recordings       Recording[]
+  apiTokens        ApiToken[]
+  envVars          UserEnvVar[]
+  sessionTemplates SessionTemplate[]
+  webhooks         Webhook[]
 }
 
 model Session {
-  id          String    @id @default(cuid())
+  id          String      @id @default(cuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String?
   tool        Tool
-  tmuxSession String    @unique
+  tmuxSession String      @unique
   ttydPort    Int?
   lastSeenAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  recordings  Recording[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([userId])
 }
@@ -73,4 +83,101 @@ enum Tool {
   OPENCODE
   CLAUDE
   BASH
+}
+
+model UserPreference {
+  userId        String   @id
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  terminalTheme String   @default("tokyo-night")
+  terminalFont  String   @default("JetBrains Mono")
+  terminalSize  Int      @default(15)
+  cursorStyle   String   @default("block")
+  layoutMode    String   @default("popup")
+  updatedAt     DateTime @updatedAt
+}
+
+model Snippet {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  command   String
+  tags      String[]
+  scope     String   @default("personal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Recording {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  title      String?
+  filePath   String
+  duration   Int?
+  sizeBytes  Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+model ApiToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  tokenHash String   @unique
+  lastUsed  DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserEnvVar {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  encryptedVal String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model SessionTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  tool        Tool
+  workingDir  String
+  envVars     String?
+  snippetIds  String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  events    String[]
+  secret    String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

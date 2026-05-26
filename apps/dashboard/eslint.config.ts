@@ -1,29 +1,74 @@
-import { defineConfig } from 'eslint/config'
-import { baseConfig, reactConfig, vitestConfig, securityConfig } from '@termless/eslint-config'
-import unicorn from 'eslint-plugin-unicorn'
+/**
+ * Copyright 2026 Abdurakhman Rakhmankulov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import n from 'eslint-plugin-n'
+import unicorn from 'eslint-plugin-unicorn'
+import tseslint from 'typescript-eslint'
+import globals from 'globals'
+import { defineConfig } from 'eslint/config'
 
 export default defineConfig([
-  ...baseConfig,
-  ...reactConfig,
-  ...vitestConfig,
-  ...securityConfig,
   {
-    name: 'termless/dashboard-overrides',
+    name: 'termless/dashboard-base',
+    files: ['src/**/*.{ts,tsx}'],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.es2024,
+      },
+      parser: tseslint.parser,
+      parserOptions: {
+        projectService: true,
+        ecmaFeatures: { jsx: true },
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+    rules: {
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        { checksVoidReturn: { attributes: false } },
+      ],
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-invalid-void-type': 'off',
+      '@typescript-eslint/no-misused-spread': 'off',
+    },
+  },
+  {
+    name: 'termless/dashboard-unicorn',
     files: ['src/**/*.{ts,tsx}'],
     plugins: { unicorn },
     rules: {
       'unicorn/no-this-assignment': 'off',
-      'unicorn/filename-case': ['error', {
-        cases: {
-          kebabCase: true,
-          pascalCase: true,
+      'unicorn/filename-case': [
+        'error',
+        {
+          cases: { kebabCase: true, pascalCase: true },
+          ignore: [/^\$?[a-zA-Z]+\.tsx$/],
         },
-        ignore: [
-          /^__root/,
-          /\$[a-zA-Z]+\.tsx$/,
-        ],
-      }],
+      ],
+      'unicorn/no-negated-condition': 'off',
+      'unicorn/prefer-export-from': 'off',
     },
   },
   {

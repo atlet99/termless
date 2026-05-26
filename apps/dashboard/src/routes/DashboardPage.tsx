@@ -13,20 +13,69 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { CommandPalette } from '../components/CommandPalette'
+import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
+import { RecordingsList } from '../components/RecordingsList'
+import { SettingsPanel } from '../components/SettingsPanel'
 import { TerminalView } from '../components/Terminal'
+import { WorkspaceManager } from '../components/WorkspaceManager'
 import { api } from '../lib/api'
+import { useNotifications } from '../lib/notifications'
 import { useAuthStore } from '../stores/auth'
 
-export function DashboardPage({ onBack }: { onBack: () => void }) {
+type Tab = 'sessions' | 'workspaces' | 'recordings'
+
+export function DashboardPage() {
+  const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [showPalette, setShowPalette] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>('sessions')
+  const token = useAuthStore((s) => s.token)
+  const { events: notifications } = useNotifications(token)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+        e.preventDefault()
+        setShowPalette((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => {
+      window.removeEventListener('keydown', handler)
+    }
+  }, [])
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'ru' : 'en'
+    void i18n.changeLanguage(newLang)
+    localStorage.setItem('termless_lang', newLang)
+  }
 
   const { data: sessions } = useQuery({
     queryKey: ['sessions'],
     queryFn: () => api.getSessions(),
+  })
+
+  const { data: preferences } = useQuery({
+    queryKey: ['preferences'],
+    queryFn: () => api.getPreferences(),
+  })
+
+  const { data: snippets } = useQuery({
+    queryKey: ['snippets'],
+    queryFn: () => api.getSnippets(),
+  })
+
+  const updatePreferences = useMutation({
+    mutationFn: (prefs: Record<string, string>) => api.updatePreferences(prefs),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['preferences'] }),
   })
 
   const createSession = useMutation({
@@ -39,20 +88,99 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
   })
 
-  if (activeSessionId) {
+  const layoutMode = preferences?.layoutMode ?? 'popup'
+
+  const toggleLayoutMode = () => {
+    const newMode = layoutMode === 'popup' ? 'embedded' : 'popup'
+    updatePreferences.mutate({ layoutMode: newMode })
+  }
+
+  if (activeSessionId && layoutMode === 'popup') {
     return (
       <div className="h-screen flex flex-col bg-zinc-950">
         <div className="flex items-center gap-4 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
           <button
-            onClick={() => setActiveSessionId(null)}
+            type="button"
+            onClick={() => {
+              setActiveSessionId(null)
+            }}
             className="text-sm text-zinc-400 hover:text-zinc-100"
           >
-            ← Back
+            {t('dashboard.back')}
           </button>
           <span className="text-sm text-zinc-400">{activeSessionId}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setShowSettings(true)
+            }}
+            className="ml-auto text-sm text-zinc-500 hover:text-zinc-300"
+          >
+            Settings
+          </button>
         </div>
         <div className="flex-1">
-          <TerminalView sessionId={activeSessionId} />
+          <TerminalView
+            sessionId={activeSessionId}
+            theme={preferences?.terminalTheme ?? 'tokyo-night'}
+            fontFamily={preferences?.terminalFont ?? 'JetBrains Mono'}
+            fontSize={preferences?.terminalSize ?? 15}
+            cursorStyle={preferences?.cursorStyle ?? 'block'}
+          />
+        </div>
+        {showSettings && preferences && (
+          <SettingsPanel
+            preferences={preferences}
+            onClose={() => {
+              setShowSettings(false)
+            }}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (layoutMode === 'embedded') {
+    return (
+      <div className="h-screen flex flex-col bg-zinc-950">
+        <header className="border-b border-zinc-800 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-bold text-zinc-100">Termless</h1>
+            <button
+              type="button"
+              onClick={toggleLayoutMode}
+              className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              Popup
+            </button>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+            >
+              {i18n.language === 'en' ? 'RU' : 'EN'}
+            </button>
+            <span className="text-sm text-zinc-400">{user?.email}</span>
+            <button
+              type="button"
+              onClick={logout}
+              className="text-sm text-zinc-500 hover:text-zinc-100"
+            >
+              {t('dashboard.logout')}
+            </button>
+          </div>
+        </header>
+        <div className="flex-1">
+          <EmbeddedTerminalLayout
+            sessions={sessions ?? []}
+            activeSessionId={activeSessionId}
+            onSelectSession={setActiveSessionId}
+            onClose={() => {
+              setActiveSessionId(null)
+            }}
+          />
         </div>
       </div>
     )
@@ -61,63 +189,152 @@ export function DashboardPage({ onBack }: { onBack: () => void }) {
   return (
     <div className="min-h-screen bg-zinc-950">
       <header className="border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
         <div className="flex items-center gap-4">
+          <h1 className="text-xl font-bold text-zinc-100">Termless</h1>
+          <button
+            type="button"
+            onClick={toggleLayoutMode}
+            className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            Embedded
+          </button>
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 hover:text-zinc-100 transition-colors"
+          >
+            {i18n.language === 'en' ? 'RU' : 'EN'}
+          </button>
           <span className="text-sm text-zinc-400">{user?.email}</span>
-          <button onClick={logout} className="text-sm text-zinc-500 hover:text-zinc-100">
-            Logout
+          <button
+            type="button"
+            onClick={logout}
+            className="text-sm text-zinc-500 hover:text-zinc-100"
+          >
+            {t('dashboard.logout')}
           </button>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto p-6">
-        <div className="flex gap-4 mb-8">
-          {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
+        {notifications.length > 0 && (
+          <div className="mb-4 p-2 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-400">
+            {notifications.slice(-3).map((n) => (
+              <div key={`${n.type}-${n.timestamp}`}>
+                {n.type}: {JSON.stringify(n.data)}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-4 mb-6 border-b border-zinc-800 pb-2">
+          {(['sessions', 'workspaces', 'recordings'] as const).map((tab) => (
             <button
-              key={tool}
-              onClick={() => createSession.mutate(tool)}
-              disabled={createSession.isPending}
-              className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
+              key={tab}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab)
+              }}
+              className={`text-sm pb-1 border-b-2 transition-colors ${
+                activeTab === tab
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
             >
-              + {tool.charAt(0) + tool.slice(1).toLowerCase()}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
 
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4">Active Sessions</h2>
-        <div className="space-y-2">
-          {sessions?.map((session: any) => (
-            <div
-              key={session.id}
-              className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
-            >
-              <div className="flex items-center gap-4">
-                <span className="px-2 py-1 bg-zinc-800 rounded text-xs font-mono text-purple-400">
-                  {session.tool}
-                </span>
-                <span className="text-sm text-zinc-400">{session.id}</span>
-              </div>
-              <div className="flex gap-2">
+        {activeTab === 'workspaces' && <WorkspaceManager />}
+        {activeTab === 'recordings' && <RecordingsList />}
+        {activeTab === 'sessions' && (
+          <>
+            <div className="flex gap-4 mb-8">
+              {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
                 <button
-                  onClick={() => setActiveSessionId(session.id)}
-                  className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
+                  key={tool}
+                  type="button"
+                  onClick={() => {
+                    createSession.mutate(tool)
+                  }}
+                  disabled={createSession.isPending}
+                  className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
                 >
-                  Connect
+                  {t(`session.new${tool.charAt(0) + tool.slice(1).toLowerCase()}`)}
                 </button>
-                <button
-                  onClick={() => deleteSession.mutate(session.id)}
-                  className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-          {(!sessions || sessions.length === 0) && (
-            <p className="text-zinc-500 text-sm">No active sessions. Create one above.</p>
-          )}
-        </div>
+
+            <h2 className="text-lg font-semibold text-zinc-200 mb-4">
+              {t('dashboard.activeSessions')}
+            </h2>
+            <div className="space-y-2">
+              {sessions?.map((session: any) => (
+                <div
+                  key={session.id}
+                  className="flex items-center justify-between p-4 bg-zinc-900 border border-zinc-800 rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="px-2 py-1 bg-zinc-800 rounded text-xs font-mono text-purple-400">
+                      {session.tool}
+                    </span>
+                    <span className="text-sm text-zinc-400">{session.name ?? session.id}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveSessionId(session.id)
+                      }}
+                      className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-700 rounded text-white transition-colors"
+                    >
+                      {t('dashboard.connect')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteSession.mutate(session.id)
+                      }}
+                      className="px-3 py-1 text-sm bg-zinc-800 hover:bg-red-600 rounded text-zinc-400 hover:text-white transition-colors"
+                    >
+                      {t('dashboard.delete')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {(!sessions || sessions.length === 0) && (
+                <p className="text-zinc-500 text-sm">{t('dashboard.noSessions')}</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {user?.role === 'ADMIN' && (
+          <div className="mt-8">
+            <a href="#/admin/audit" className="text-sm text-purple-400 hover:text-purple-300">
+              View Audit Log
+            </a>
+          </div>
+        )}
       </main>
+
+      {showPalette && (
+        <CommandPalette
+          snippets={snippets ?? []}
+          onSelect={(command) => {
+            setShowPalette(false)
+            if (activeSessionId) {
+              void api.post(`/api/v1/sessions/${activeSessionId}/exec`, { command })
+            }
+          }}
+          onClose={() => {
+            setShowPalette(false)
+          }}
+        />
+      )}
     </div>
   )
 }

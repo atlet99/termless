@@ -32,11 +32,21 @@ async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  get: <T>(path: string) => fetchApi<T>(path),
+
+  post: <T>(path: string, body?: unknown) =>
+    fetchApi<T>(path, {
+      method: 'POST',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }),
+
   login: (email: string, password: string) =>
     fetchApi<{ token: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
+
+  getMe: () => fetchApi<{ user: any }>('/auth/me'),
 
   getSessions: () => fetchApi<any[]>('/api/v1/sessions'),
 
@@ -55,4 +65,43 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, path }),
     }),
+
+  getPreferences: () =>
+    fetchApi<{
+      terminalTheme: string
+      terminalFont: string
+      terminalSize: number
+      cursorStyle: string
+      layoutMode: string
+    }>('/api/v1/me/preferences'),
+
+  updatePreferences: (prefs: {
+    terminalTheme?: string
+    terminalFont?: string
+    terminalSize?: number
+    cursorStyle?: string
+    layoutMode?: string
+  }) =>
+    fetchApi<any>('/api/v1/me/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(prefs),
+    }),
+
+  getSnippets: () => fetchApi<any[]>('/api/v1/snippets'),
+
+  createSnippet: (data: { name: string; command: string; tags?: string[] }) =>
+    fetchApi<any>('/api/v1/snippets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  deleteSnippet: (id: string) => fetchApi<void>(`/api/v1/snippets/${id}`, { method: 'DELETE' }),
+
+  createShare: (sessionId: string, expiresIn: string) =>
+    fetchApi<{ shareToken: string; url: string }>(`/api/v1/sessions/${sessionId}/share`, {
+      method: 'POST',
+      body: JSON.stringify({ expiresIn }),
+    }),
+
+  revokeShare: (sessionId: string, token: string) =>
+    fetchApi<void>(`/api/v1/sessions/${sessionId}/share?token=${token}`, { method: 'DELETE' }),
 }

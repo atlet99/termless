@@ -1,0 +1,26 @@
+{
+  "name": "@termless/cli",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "termless": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@termless/eslint-config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "eslint": "catalog:",
+    "tsup": "^8.0.0",
+    "typescript": "catalog:"
+  }
+}

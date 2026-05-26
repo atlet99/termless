@@ -71,9 +71,19 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${WORKSPACE_ROOT:-./workspace}
+      device: ./test_results/volumes/workspace
   pgdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./test_results/volumes/postgres
   redisdata:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./test_results/volumes/redis
   caddy_data:
   caddy_config:
 

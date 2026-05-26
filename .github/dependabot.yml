@@ -1,0 +1,69 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: Asia/Almaty
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      fastify:
+        patterns:
+          - "@fastify/*"
+          - "fastify"
+          - "fastify-plugin"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+          - "@vitejs/plugin-react"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      xterm:
+        patterns:
+          - "@xterm/*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-plugin-*"
+          - "typescript-eslint"
+      prisma:
+        patterns:
+          - "@prisma/*"
+          - "prisma"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "jsdom"
+          - "@types/jsdom"
+    ignore:
+      - dependency-name: "@biomejs/biome"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker
+    directory: /infra/docker
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: Asia/Almaty
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: Asia/Almaty
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci

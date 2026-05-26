@@ -13,12 +13,12 @@
  */
 
 import { mkdir, unlink, writeFile } from 'node:fs/promises'
+
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:sudoers')
 
 const SUDOERS_DIR = '/etc/sudoers.d'
-
 const OPERATOR_COMMANDS = [
   '/usr/bin/apt-get install *',
   '/usr/bin/apt-get update',
@@ -29,7 +29,7 @@ const OPERATOR_COMMANDS = [
 export async function createSudoersFile(systemUid: number, role: string): Promise<void> {
   if (role !== 'OPERATOR' && role !== 'ADMIN') return
 
-  const username = `termless-user-${systemUid}`
+  const username = `termless-user-${String(systemUid)}`
   const path = `${SUDOERS_DIR}/${username}`
   const lines = OPERATOR_COMMANDS.map((cmd) => `${username} ALL=(root) NOPASSWD: ${cmd}`)
 
@@ -40,7 +40,7 @@ export async function createSudoersFile(systemUid: number, role: string): Promis
 }
 
 export async function removeSudoersFile(systemUid: number): Promise<void> {
-  const username = `termless-user-${systemUid}`
+  const username = `termless-user-${String(systemUid)}`
   const path = `${SUDOERS_DIR}/${username}`
 
   try {

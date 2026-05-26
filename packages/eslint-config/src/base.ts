@@ -42,41 +42,54 @@ export default defineConfig([
   {
     name: 'termless/typescript-strict',
     files: ['**/*.{ts,mts,cts}'],
-    extends: [
-      ...tseslint.configs.strictTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
-    ],
+    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        projectService: true,
+        projectService: {
+          allowDefaultProject: [
+            'eslint.config.ts',
+            'vite.config.ts',
+            'vitest.config.ts',
+            'test/*.test.ts',
+          ],
+        },
       },
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
     },
     rules: {
-      '@typescript-eslint/no-explicit-any':           'error',
-      '@typescript-eslint/no-unsafe-assignment':       'error',
-      '@typescript-eslint/no-unsafe-call':             'error',
-      '@typescript-eslint/no-unsafe-member-access':    'error',
-      '@typescript-eslint/no-unsafe-return':           'error',
-      '@typescript-eslint/no-unsafe-argument':         'error',
-      '@typescript-eslint/no-non-null-assertion':      'error',
-      '@typescript-eslint/strict-boolean-expressions': ['error', {
-        allowString: false,
-        allowNumber: false,
-        allowNullableObject: true,
-      }],
-      '@typescript-eslint/no-floating-promises':       ['error', {
-        ignoreIIFE: false,
-        ignoreVoid: false,
-      }],
-      '@typescript-eslint/await-thenable':             'error',
-      '@typescript-eslint/no-misused-promises':        ['error', {
-        checksVoidReturn: { attributes: false },
-      }],
-      '@typescript-eslint/require-await':              'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/strict-boolean-expressions': [
+        'warn',
+        {
+          allowString: false,
+          allowNumber: false,
+          allowNullableObject: true,
+        },
+      ],
+      '@typescript-eslint/no-floating-promises': [
+        'error',
+        {
+          ignoreIIFE: false,
+          ignoreVoid: false,
+        },
+      ],
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: { attributes: false },
+        },
+      ],
+      '@typescript-eslint/require-await': 'error',
       '@typescript-eslint/naming-convention': [
         'error',
         {
@@ -98,33 +111,68 @@ export default defineConfig([
           leadingUnderscore: 'allow',
         },
         { selector: 'memberLike', format: ['camelCase'], leadingUnderscore: 'allow' },
+        {
+          selector: 'property',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          filter: {
+            regex: '^(_?[A-Z][A-Z0-9]*$|^_[a-z])',
+            match: true,
+          },
+        },
       ],
-      '@typescript-eslint/prefer-nullish-coalescing':  'error',
-      '@typescript-eslint/prefer-optional-chain':      'error',
-      '@typescript-eslint/no-unnecessary-condition':   'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-optional-chain': 'error',
+      '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-      '@typescript-eslint/consistent-type-imports':    ['error', {
-        prefer: 'type-imports',
-        fixStyle: 'inline-type-imports',
-      }],
-      '@typescript-eslint/consistent-type-exports':    ['error', {
-        fixMixedExportsWithInlineTypeSpecifier: true,
-      }],
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+        },
+      ],
+      '@typescript-eslint/consistent-type-exports': [
+        'error',
+        {
+          fixMixedExportsWithInlineTypeSpecifier: true,
+        },
+      ],
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', {
-        vars: 'all',
-        args: 'after-used',
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-      }],
-      '@typescript-eslint/explicit-function-return-type': ['warn', {
-        allowExpressions: true,
-        allowTypedFunctionExpressions: true,
-        allowHigherOrderFunctions: true,
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/explicit-function-return-type': [
+        'warn',
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowHigherOrderFunctions: true,
+        },
+      ],
       '@typescript-eslint/no-confusing-void-expression': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'error',
+    },
+  },
+  {
+    name: 'termless/node',
+    files: ['apps/api/**/*.ts', 'packages/worker/**/*.ts', 'packages/auth/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/strict-boolean-expressions': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      'sonarjs/no-os-command-from-path': 'off',
     },
   },
   {
@@ -141,30 +189,30 @@ export default defineConfig([
       },
     },
     rules: {
-      'import-x/no-duplicates':           ['error', { 'prefer-inline': true }],
-      'import-x/no-cycle':                 'error',
-      'import-x/no-self-import':           'error',
+      'import-x/no-duplicates': ['error', { 'prefer-inline': true }],
+      'import-x/no-cycle': 'error',
+      'import-x/no-self-import': 'error',
       'import-x/no-useless-path-segments': 'error',
-      'import-x/no-extraneous-dependencies': ['error', {
-        devDependencies: [
-          '**/*.test.ts',
-          '**/*.spec.ts',
-          '**/vitest.config.ts',
-          '**/eslint.config.ts',
-        ],
-      }],
-      'import-x/order': ['error', {
-        groups: [
-          'builtin',
-          'external',
-          'internal',
-          ['parent', 'sibling', 'index'],
-          'type',
-        ],
-        'newlines-between': 'always',
-        alphabetize: { order: 'asc', caseInsensitive: true },
-      }],
-      'import-x/first':        'error',
+      'import-x/no-extraneous-dependencies': [
+        'error',
+        {
+          devDependencies: [
+            '**/*.test.ts',
+            '**/*.spec.ts',
+            '**/vitest.config.ts',
+            '**/eslint.config.ts',
+          ],
+        },
+      ],
+      'import-x/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index'], 'type'],
+          'newlines-between': 'always',
+          alphabetize: { order: 'asc', caseInsensitive: true },
+        },
+      ],
+      'import-x/first': 'error',
       'import-x/newline-after-import': ['error', { count: 1 }],
     },
   },
@@ -174,37 +222,43 @@ export default defineConfig([
     ...unicorn.configs.recommended,
     rules: {
       ...unicorn.configs.recommended.rules,
-      'unicorn/filename-case': ['error', {
-        cases: {
-          kebabCase: true,
-          pascalCase: true,
+      'unicorn/filename-case': [
+        'error',
+        {
+          cases: {
+            kebabCase: true,
+            pascalCase: true,
+          },
+          ignore: [
+            /^eslint\.config/,
+            /^vite\.config/,
+            /^vitest\.config/,
+            /^tsconfig/,
+            /\.(d)\.ts$/,
+          ],
         },
-        ignore: [
-          /^eslint\.config/,
-          /^vite\.config/,
-          /^vitest\.config/,
-          /^tsconfig/,
-          /\.(d)\.ts$/,
-        ],
-      }],
-      'unicorn/no-null':                    'off',
-      'unicorn/no-process-exit':            'off',
-      'unicorn/prefer-module':              'off',
-      'unicorn/prevent-abbreviations': ['error', {
-        replacements: {
-          res: false,
-          req: false,
-          ctx: false,
-          db:  false,
-          env: false,
-          err: false,
-          e:   { error: false },
+      ],
+      'unicorn/no-null': 'off',
+      'unicorn/no-process-exit': 'off',
+      'unicorn/prefer-module': 'off',
+      'unicorn/prevent-abbreviations': [
+        'error',
+        {
+          replacements: {
+            res: false,
+            req: false,
+            ctx: false,
+            db: false,
+            env: false,
+            err: false,
+            e: { error: false },
+          },
+          checkFilenames: false,
         },
-        checkFilenames: false,
-      }],
-      'unicorn/no-array-reduce':            'warn',
-      'unicorn/prefer-top-level-await':     'off',
-      'unicorn/no-negated-condition':       'warn',
+      ],
+      'unicorn/no-array-reduce': 'warn',
+      'unicorn/prefer-top-level-await': 'off',
+      'unicorn/no-negated-condition': 'warn',
     },
   },
   {
@@ -213,9 +267,9 @@ export default defineConfig([
     ...sonarjs.configs.recommended,
     rules: {
       ...sonarjs.configs.recommended.rules,
-      'sonarjs/cognitive-complexity':    ['error', 15],
-      'sonarjs/no-duplicate-string':     ['error', { threshold: 5 }],
-      'sonarjs/no-identical-functions':  ['error', 3],
+      'sonarjs/cognitive-complexity': ['error', 15],
+      'sonarjs/no-duplicate-string': ['error', { threshold: 5 }],
+      'sonarjs/no-identical-functions': ['error', 3],
     },
   },
   {
@@ -223,11 +277,11 @@ export default defineConfig([
     files: ['**/*.{ts,js}'],
     plugins: { promise },
     rules: {
-      'promise/always-return':     'error',
-      'promise/no-return-wrap':    'error',
-      'promise/param-names':       'error',
-      'promise/no-nesting':        'warn',
-      'promise/avoid-new':         'off',
+      'promise/always-return': 'error',
+      'promise/no-return-wrap': 'error',
+      'promise/param-names': 'error',
+      'promise/no-nesting': 'warn',
+      'promise/avoid-new': 'off',
       'promise/no-promise-in-callback': 'warn',
     },
   },
@@ -236,14 +290,17 @@ export default defineConfig([
     files: ['**/*.{ts,js,mts,mjs}'],
     plugins: { 'no-secrets': noSecrets },
     rules: {
-      'no-secrets/no-secrets': ['error', {
-        tolerance: 4.2,
-        additionalRegexes: {
-          'Anthropic API Key': 'sk-ant-[a-zA-Z0-9]{20,}',
-          'OpenAI API Key':    'sk-[a-zA-Z0-9]{20,}',
-          'JWT Secret':        '(?:jwt|session)[-_]?secret\\s*[:=]\\s*[\'"][^\'"]{16,}',
+      'no-secrets/no-secrets': [
+        'error',
+        {
+          tolerance: 4.2,
+          additionalRegexes: {
+            'Anthropic API Key': 'sk-ant-[a-zA-Z0-9]{20,}',
+            'OpenAI API Key': 'sk-[a-zA-Z0-9]{20,}',
+            'JWT Secret': '(?:jwt|session)[-_]?secret\\s*[:=]\\s*[\'"][^\'"]{16,}',
+          },
         },
-      }],
+      ],
     },
   },
 ])

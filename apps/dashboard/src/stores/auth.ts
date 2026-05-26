@@ -13,6 +13,7 @@
  */
 
 import { create } from 'zustand'
+import { api } from '../lib/api'
 
 interface AuthUser {
   id: string
@@ -25,15 +26,27 @@ interface AuthState {
   token: string | null
   user: AuthUser | null
   setAuth: (token: string, user: AuthUser) => void
+  hydrate: () => Promise<void>
   logout: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   token: localStorage.getItem('termless_token'),
   user: null,
   setAuth: (token, user) => {
     localStorage.setItem('termless_token', token)
     set({ token, user })
+  },
+  hydrate: async () => {
+    const { token } = get()
+    if (!token) return
+    try {
+      const { user } = await api.getMe()
+      set({ user })
+    } catch {
+      localStorage.removeItem('termless_token')
+      set({ token: null, user: null })
+    }
   },
   logout: () => {
     localStorage.removeItem('termless_token')

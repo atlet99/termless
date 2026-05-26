@@ -12,18 +12,28 @@
  * limitations under the License.
  */
 
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:tmux')
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
+
+function usernameFor(userId: number): string {
+  return `termless-user-${String(userId)}`
+}
 
 export async function listSessions(userId: number): Promise<string[]> {
   try {
-    const { stdout } = await execAsync(
-      `sudo -u termless-user-${userId} tmux list-sessions -F '#{session_name}'`,
-    )
+    const { stdout } = await execFileAsync('sudo', [
+      '-u',
+      usernameFor(userId),
+      'tmux',
+      'list-sessions',
+      '-F',
+      '#{session_name}',
+    ])
     return stdout.trim().split('\n').filter(Boolean)
   } catch {
     return []
@@ -37,14 +47,26 @@ export async function sessionExists(sessionName: string, userId: number): Promis
 
 export async function killSession(sessionName: string, userId: number): Promise<void> {
   logger.info({ sessionName, userId }, 'Killing tmux session')
-  await execAsync(`sudo -u termless-user-${userId} tmux kill-session -t ${sessionName}`)
+  await execFileAsync('sudo', [
+    '-u',
+    usernameFor(userId),
+    'tmux',
+    'kill-session',
+    '-t',
+    sessionName,
+  ])
 }
 
 export async function hasActiveClients(sessionName: string, userId: number): Promise<boolean> {
   try {
-    const { stdout } = await execAsync(
-      `sudo -u termless-user-${userId} tmux list-commands -t ${sessionName} 2>&1`,
-    )
+    const { stdout } = await execFileAsync('sudo', [
+      '-u',
+      usernameFor(userId),
+      'tmux',
+      'list-commands',
+      '-t',
+      sessionName,
+    ])
     return !stdout.includes('no server running')
   } catch {
     return false

@@ -18,12 +18,14 @@ export const toolSchema = z.enum(['OPENCODE', 'CLAUDE', 'BASH'])
 
 export const createSessionSchema = z.object({
   tool: toolSchema,
+  name: z.string().max(100).optional(),
   workspaceId: z.string().optional(),
 })
 
 export const sessionSchema = z.object({
   id: z.string(),
   userId: z.string(),
+  name: z.string().nullable(),
   tool: toolSchema,
   tmuxSession: z.string(),
   ttydPort: z.number().nullable(),
@@ -33,5 +35,23 @@ export const sessionSchema = z.object({
 
 export const sessionListSchema = z.array(sessionSchema)
 
+export const recordingSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  sessionId: z.string(),
+  title: z.string().nullable(),
+  filePath: z.string(),
+  duration: z.number().nullable(),
+  sizeBytes: z.number(),
+  createdAt: z.string(),
+})
+
+export const createPlaybackShareSchema = z.object({
+  recordingId: z.string(),
+  expiresIn: z.enum(['1h', '24h', '7d']),
+})
+
 export type CreateSessionInput = z.infer<typeof createSessionSchema>
 export type Session = z.infer<typeof sessionSchema>
+export type Recording = z.infer<typeof recordingSchema>
+export type CreatePlaybackShareInput = z.infer<typeof createPlaybackShareSchema>

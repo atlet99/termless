@@ -12,7 +12,10 @@
  * limitations under the License.
  */
 
-import { type ChildProcess, spawn } from 'node:child_process'
+import { type ChildProcess, spawn, type SpawnOptions } from 'node:child_process'
+
+import { workerProcessesTotal } from '@termless/shared'
+
 import { createLogger } from './logger.js'
 
 const logger = createLogger('worker:ttyd')
@@ -47,7 +50,7 @@ export function startTtyd(options: TtydOptions): ChildProcess {
 
   logger.info({ port, userId, tmuxSession }, 'Starting ttyd')
 
-  const args = [
+  const commandArguments: string[] = [
     '--port',
     String(port),
     '--interface',
@@ -65,33 +68,39 @@ export function startTtyd(options: TtydOptions): ChildProcess {
     `theme=${JSON.stringify(TOKYO_NIGHT_THEME)}`,
     'bash',
     '-c',
-    `sudo -u termless-user-${userId} tmux new-session -A -s ${tmuxSession} -c ${workspacePath}`,
+    `sudo -u termless-user-${String(userId)} tmux new-session -A -s ${tmuxSession} -c ${workspacePath}`,
   ]
 
-  const child = spawn('ttyd', args, {
+  const spawnOptions: SpawnOptions = {
+    env: { PATH: process.env.PATH ?? '' },
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: true,
-  })
+  }
 
-  child.on('error', (err) => {
-    logger.error({ err, port }, 'ttyd failed to start')
+  const child = spawn('ttyd', commandArguments, spawnOptions)
+
+  child.on('error', (error) => {
+    logger.error({ error, port }, 'ttyd failed to start')
   })
 
   child.on('exit', (code) => {
     logger.info({ port, code }, 'ttyd exited')
     activeProcesses.delete(port)
+    workerProcessesTotal.dec({ tool: 'ttyd' })
   })
 
   activeProcesses.set(port, child)
+  workerProcessesTotal.inc({ tool: 'ttyd' })
   return child
 }
 
 export function stopTtyd(port: number): void {
   const child = activeProcesses.get(port)
-  if (child) {
+  if (child !== undefined) {
     logger.info({ port }, 'Stopping ttyd')
     child.kill('SIGTERM')
     activeProcesses.delete(port)
+    workerProcessesTotal.dec({ tool: 'ttyd' })
   }
 }
 
@@ -101,6 +110,7 @@ export function stopAllTtyd(): void {
     child.kill('SIGTERM')
   }
   activeProcesses.clear()
+  workerProcessesTotal.set({ tool: 'ttyd' }, 0)
 }
 
 export function getActivePorts(): number[] {

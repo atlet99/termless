@@ -15,6 +15,7 @@
 import swagger from '@fastify/swagger'
 import scalar from '@scalar/fastify-api-reference'
 import fp from 'fastify-plugin'
+import { isInternalIP } from './metrics.js'
 
 export const register = fp(async (fastify) => {
   await fastify.register(swagger, {
@@ -24,12 +25,13 @@ export const register = fp(async (fastify) => {
         title: 'Termless API',
         description: 'Centralized terminal hub for opencode and claude code',
         version: '1.0.0',
-        license: { name: 'Apache 2.0', url: 'https://github.com/atlet99/termless/blob/main/LICENSE' },
+        license: {
+          name: 'Apache 2.0',
+          url: 'https://github.com/atlet99/termless/blob/main/LICENSE',
+        },
         contact: { name: 'Termless', url: 'https://github.com/atlet99/termless' },
       },
-      servers: [
-        { url: process.env.API_PUBLIC_URL ?? '/api', description: 'Current server' },
-      ],
+      servers: [{ url: process.env.API_PUBLIC_URL ?? '/api', description: 'Current server' }],
       components: {
         securitySchemes: {
           bearerAuth: {
@@ -58,6 +60,17 @@ export const register = fp(async (fastify) => {
   })
 
   if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_UI === 'true') {
+    fastify.addHook('onRequest', async (request, reply) => {
+      if (!request.url.startsWith('/reference')) return
+      if (process.env.NODE_ENV === 'production') {
+        const isInternal = isInternalIP(request.ip)
+        const isAdmin = request.user?.role === 'ADMIN'
+        if (!isInternal && !isAdmin) {
+          return reply.code(403).send({ error: 'API reference not available externally' })
+        }
+      }
+    })
+
     await fastify.register(scalar, {
       routePrefix: '/reference',
       configuration: {
