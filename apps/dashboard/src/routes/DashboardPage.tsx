@@ -28,6 +28,8 @@ import { type NavItem, Sidebar } from '../components/Sidebar'
 import { SnippetManager } from '../components/SnippetManager'
 import { TemplatesManager } from '../components/TemplatesManager'
 import { TerminalView } from '../components/Terminal'
+import { TerminalStatusBar } from '../components/TerminalStatusBar'
+import { TerminalTabBar } from '../components/TerminalTabBar'
 import { ToolBadge } from '../components/ToolBadge'
 import { TopBar } from '../components/TopBar'
 import { WorkspaceManager } from '../components/WorkspaceManager'
@@ -135,30 +137,26 @@ export function DashboardPage() {
 
   // Popup terminal mode — full screen terminal
   if (activeSessionId && layoutMode === 'popup') {
+    const activeSession = sessions?.find((s: any) => s.id === activeSessionId)
+    const terminalTabs = (sessions ?? []).map((s: any) => ({
+      id: s.id,
+      name: s.name ?? s.id.slice(0, 8),
+      tool: s.tool,
+    }))
+
     return (
       <div className="h-screen flex flex-col bg-[var(--color-bg)]">
-        <div className="flex items-center gap-4 px-4 py-2 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveSessionId(null)
-            }}
-            className="text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
-          >
-            {t('dashboard.back')}
-          </button>
-          <ToolBadge tool={sessions?.find((s: any) => s.id === activeSessionId)?.tool ?? ''} />
-          <span className="text-sm text-[var(--color-text-dim)] font-mono">{activeSessionId}</span>
-          <button
-            type="button"
-            onClick={() => {
-              setShowSettings(true)
-            }}
-            className="ml-auto text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
-          >
-            {t('dashboard.settings')}
-          </button>
-        </div>
+        <TerminalTabBar
+          tabs={terminalTabs}
+          activeId={activeSessionId}
+          onSelect={setActiveSessionId}
+          onClose={(id) => {
+            deleteSession.mutate(id)
+          }}
+          onAdd={() => {
+            handleNewSession('OPENCODE')
+          }}
+        />
         <div className="flex-1">
           <TerminalView
             sessionId={activeSessionId}
@@ -168,6 +166,13 @@ export function DashboardPage() {
             cursorStyle={preferences?.cursorStyle ?? 'block'}
           />
         </div>
+        <TerminalStatusBar
+          tool={activeSession?.tool}
+          onKill={() => {
+            deleteSession.mutate(activeSessionId)
+            setActiveSessionId(null)
+          }}
+        />
         {showSettings && preferences && (
           <SettingsPanel
             preferences={preferences}
