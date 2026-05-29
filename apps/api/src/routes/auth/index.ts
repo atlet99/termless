@@ -140,7 +140,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       schema: { tags: ['auth'], description: 'Start OIDC flow' },
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     },
-    async (request, reply) => {
+    async (_request, reply) => {
       const issuerUrl = process.env.OIDC_ISSUER_URL
       const clientId = process.env.OIDC_CLIENT_ID
 
