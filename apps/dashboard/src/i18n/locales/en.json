@@ -114,6 +114,22 @@
     "error": "Error",
     "loading": "Loading...",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "templates": {
+    "new": "New Template",
+    "edit": "Edit Template",
+    "name": "Template name",
+    "namePlaceholder": "e.g. api-dev",
+    "tool": "Tool",
+    "workingDir": "Working directory",
+    "workingDirPlaceholder": "e.g. /workspace/project/apps/api",
+    "envVars": "Environment variables (KEY=VALUE, comma-separated)",
+    "envVarsPlaceholder": "e.g. NODE_ENV=development, DEBUG=true",
+    "create": "Create",
+    "save": "Save",
+    "empty": "No templates yet"
   }
 }

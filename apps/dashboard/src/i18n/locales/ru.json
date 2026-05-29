@@ -114,6 +114,22 @@
     "error": "Ошибка",
     "loading": "Загрузка...",
     "save": "Сохранить",
-    "cancel": "Отмена"
+    "cancel": "Отмена",
+    "edit": "Изменить",
+    "delete": "Удалить"
+  },
+  "templates": {
+    "new": "Новый шаблон",
+    "edit": "Редактировать шаблон",
+    "name": "Название шаблона",
+    "namePlaceholder": "напр. api-dev",
+    "tool": "Инструмент",
+    "workingDir": "Рабочая директория",
+    "workingDirPlaceholder": "напр. /workspace/project/apps/api",
+    "envVars": "Переменные окружения (KEY=VALUE, через запятую)",
+    "envVarsPlaceholder": "напр. NODE_ENV=development, DEBUG=true",
+    "create": "Создать",
+    "save": "Сохранить",
+    "empty": "Нет шаблонов"
   }
 }

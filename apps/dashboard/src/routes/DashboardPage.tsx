@@ -23,6 +23,7 @@ import { RecordingsList } from '../components/RecordingsList'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { type NavItem, Sidebar } from '../components/Sidebar'
 import { SnippetManager } from '../components/SnippetManager'
+import { TemplatesManager } from '../components/TemplatesManager'
 import { TerminalView } from '../components/Terminal'
 import { ToolBadge } from '../components/ToolBadge'
 import { TopBar } from '../components/TopBar'
@@ -254,7 +255,7 @@ export function DashboardPage() {
             {activeNav === 'recordings' && <RecordingsList />}
             {activeNav === 'env-vars' && <EnvVarsManager />}
             {activeNav === 'snippets' && <SnippetManager />}
-            {activeNav === 'templates' && <TemplatesPlaceholder />}
+            {activeNav === 'templates' && <TemplatesManager />}
             {activeNav === 'logs' && <LogsPlaceholder />}
             {activeNav === 'admin' && user?.role === 'ADMIN' && <AdminPanel />}
             {activeNav === 'settings' && preferences && (
@@ -411,18 +412,6 @@ function SessionsView({
 }
 
 /* ── Placeholder pages (to be implemented) ── */
-
-function TemplatesPlaceholder() {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-4">
-        {t('sidebar.templates')}
-      </h1>
-      <p className="text-[var(--color-text-dim)] text-sm">Templates management coming soon.</p>
-    </div>
-  )
-}
 
 function LogsPlaceholder() {
   const { t } = useTranslation()
