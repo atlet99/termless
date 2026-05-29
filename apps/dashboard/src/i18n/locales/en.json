@@ -131,5 +131,9 @@
     "create": "Create",
     "save": "Save",
     "empty": "No templates yet"
+  },
+  "toast": {
+    "sessionCreated": "Session created",
+    "sessionDeleted": "Session deleted"
   }
 }

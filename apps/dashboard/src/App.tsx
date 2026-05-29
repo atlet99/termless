@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { AppToaster } from './components/AppToaster'
 import { AuditLog } from './components/AuditLog'
 import { InviteAccept } from './components/InviteAccept'
 import { ShareViewer } from './components/ShareViewer'
@@ -81,5 +82,10 @@ export function App() {
     )
   }
 
-  return <DashboardPage />
+  return (
+    <>
+      <DashboardPage />
+      <AppToaster />
+    </>
+  )
 }

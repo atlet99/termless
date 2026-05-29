@@ -13,8 +13,9 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { AdminPanel } from '../components/AdminPanel'
 import { CommandPalette } from '../components/CommandPalette'
 import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
@@ -45,6 +46,19 @@ export function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isDark, setIsDark] = useState(true)
   const { events: notifications, connected } = useNotifications(token)
+  const prevNotifCountRef = useRef(0)
+
+  // Show toast for new SSE notifications
+  useEffect(() => {
+    if (notifications.length > prevNotifCountRef.current) {
+      const newNotifs = notifications.slice(prevNotifCountRef.current)
+      for (const n of newNotifs) {
+        const message = n.type.replace(/[._]/g, ' ')
+        toast.info(message, { description: JSON.stringify(n.data) })
+      }
+    }
+    prevNotifCountRef.current = notifications.length
+  }, [notifications])
 
   const connectionStatus: 'connected' | 'degraded' | 'reconnecting' | 'offline' = connected
     ? 'connected'
@@ -92,6 +106,10 @@ export function DashboardPage() {
       api.post('/api/v1/sessions', { tool, templateId }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      toast.success(t('toast.sessionCreated'))
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
@@ -99,6 +117,10 @@ export function DashboardPage() {
     mutationFn: (id: string) => api.deleteSession(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      toast.success(t('toast.sessionDeleted'))
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
@@ -269,20 +291,6 @@ export function DashboardPage() {
           </div>
         </main>
       </div>
-
-      {/* Notifications bar (temporary — will be replaced with toasts) */}
-      {notifications.length > 0 && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
-          {notifications.slice(-3).map((n) => (
-            <div
-              key={`${n.type}-${n.timestamp}`}
-              className="px-4 py-2 bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-lg text-xs text-[var(--color-text-dim)] shadow-lg"
-            >
-              {n.type}: {JSON.stringify(n.data)}
-            </div>
-          ))}
-        </div>
-      )}
 
       {showPalette && (
         <CommandPalette
