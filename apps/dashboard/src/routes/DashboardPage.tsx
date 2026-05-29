@@ -20,6 +20,8 @@ import { AdminPanel } from '../components/AdminPanel'
 import { CommandPalette } from '../components/CommandPalette'
 import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
 import { EnvVarsManager } from '../components/EnvVarsManager'
+import { LogsPage } from '../components/LogsPage'
+import { OfflineBanner } from '../components/OfflineBanner'
 import { RecordingsList } from '../components/RecordingsList'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { type NavItem, Sidebar } from '../components/Sidebar'
@@ -238,6 +240,8 @@ export function DashboardPage() {
         userEmail={user?.email}
       />
 
+      <OfflineBanner status={connectionStatus} />
+
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           active={activeNav}
@@ -278,7 +282,7 @@ export function DashboardPage() {
             {activeNav === 'env-vars' && <EnvVarsManager />}
             {activeNav === 'snippets' && <SnippetManager />}
             {activeNav === 'templates' && <TemplatesManager />}
-            {activeNav === 'logs' && <LogsPlaceholder />}
+            {activeNav === 'logs' && <LogsPage />}
             {activeNav === 'admin' && user?.role === 'ADMIN' && <AdminPanel />}
             {activeNav === 'settings' && preferences && (
               <SettingsPanel
@@ -415,18 +419,6 @@ function SessionsView({
           <p className="text-[var(--color-text-dim)] text-sm">{t('dashboard.noSessions')}</p>
         )}
       </div>
-    </div>
-  )
-}
-
-/* ── Placeholder pages (to be implemented) ── */
-
-function LogsPlaceholder() {
-  const { t } = useTranslation()
-  return (
-    <div>
-      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-4">{t('sidebar.logs')}</h1>
-      <p className="text-[var(--color-text-dim)] text-sm">Logs viewer coming soon.</p>
     </div>
   )
 }
