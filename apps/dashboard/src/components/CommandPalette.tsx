@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 interface Snippet {
   id: string
@@ -29,6 +29,8 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ snippets, onSelect, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
 
   const filtered = snippets.filter(
     (s) =>
@@ -37,8 +39,42 @@ export function CommandPalette({ snippets, onSelect, onClose }: CommandPalettePr
       s.tags.some((t) => t.toLowerCase().includes(query.toLowerCase())),
   )
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case 'Escape': {
+          onClose()
+          break
+        }
+        case 'ArrowDown': {
+          e.preventDefault()
+          setSelectedIndex((prev) => Math.min(prev + 1, filtered.length - 1))
+          break
+        }
+        case 'ArrowUp': {
+          e.preventDefault()
+          setSelectedIndex((prev) => Math.max(prev - 1, 0))
+          break
+        }
+        case 'Enter': {
+          if (filtered.length > 0) {
+            const selected = filtered[selectedIndex]
+            if (selected) onSelect(selected.command)
+          }
+          break
+        }
+      }
+    },
+    [filtered, selectedIndex, onSelect, onClose],
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-black/50 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+    >
       <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden">
         <div className="p-3 border-b border-zinc-800">
           <input
@@ -46,30 +82,41 @@ export function CommandPalette({ snippets, onSelect, onClose }: CommandPalettePr
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
+              setSelectedIndex(0)
             }}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') onClose()
-              if (e.key === 'Enter' && filtered.length > 0) {
-                const first = filtered[0]
-                if (first) onSelect(first.command)
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder="Search snippets..."
             className="w-full bg-transparent text-zinc-100 outline-none placeholder:text-zinc-500"
+            aria-label="Search snippets"
+            aria-controls="snippet-list"
+            aria-activedescendant={
+              filtered[selectedIndex] ? `snippet-${filtered[selectedIndex].id}` : undefined
+            }
             ref={(input) => {
               if (input) input.focus()
             }}
           />
         </div>
-        <div className="max-h-64 overflow-y-auto">
-          {filtered.map((snippet) => (
+        <div
+          id="snippet-list"
+          ref={listRef}
+          className="max-h-64 overflow-y-auto"
+          role="listbox"
+          aria-label="Available snippets"
+        >
+          {filtered.map((snippet, index) => (
             <button
               key={snippet.id}
+              id={`snippet-${snippet.id}`}
               type="button"
+              role="option"
+              aria-selected={index === selectedIndex}
               onClick={() => {
                 onSelect(snippet.command)
               }}
-              className="w-full text-left px-4 py-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800 last:border-0"
+              className={`w-full text-left px-4 py-3 transition-colors border-b border-zinc-800 last:border-0 ${
+                index === selectedIndex ? 'bg-zinc-800' : 'hover:bg-zinc-800'
+              }`}
             >
               <div className="text-sm text-zinc-100">{snippet.name}</div>
               <div className="text-xs text-zinc-500 font-mono mt-1">{snippet.command}</div>

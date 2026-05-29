@@ -258,8 +258,27 @@ export function DashboardPage() {
               type="button"
               role="tab"
               aria-selected={activeTab === tab}
+              tabIndex={activeTab === tab ? 0 : -1}
               onClick={() => {
                 setActiveTab(tab as Tab)
+              }}
+              onKeyDown={(e) => {
+                const tabs = [
+                  'sessions',
+                  'workspaces',
+                  'recordings',
+                  'env-vars',
+                  'snippets',
+                  ...(user?.role === 'ADMIN' ? ['admin'] : []),
+                ]
+                const currentIndex = tabs.indexOf(activeTab)
+                if (e.key === 'ArrowRight') {
+                  const nextIndex = (currentIndex + 1) % tabs.length
+                  setActiveTab(tabs[nextIndex] as Tab)
+                } else if (e.key === 'ArrowLeft') {
+                  const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length
+                  setActiveTab(tabs[prevIndex] as Tab)
+                }
               }}
               className={`text-sm pb-1 border-b-2 transition-colors ${
                 activeTab === tab
