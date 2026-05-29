@@ -27,6 +27,21 @@
     "name": "Session name",
     "notes": "Notes (max 200 chars)"
   },
+  "sidebar": {
+    "navigation": "Navigation",
+    "terminal": "Terminal",
+    "sessions": "Sessions",
+    "workspaces": "Workspaces",
+    "templates": "Templates",
+    "recordings": "Recordings",
+    "envVars": "Env Vars",
+    "snippets": "Snippets",
+    "logs": "Logs",
+    "admin": "Admin",
+    "settings": "Settings",
+    "newSession": "New Session",
+    "quickLaunch": "Quick Launch"
+  },
   "tabs": {
     "sessions": "Sessions",
     "workspaces": "Workspaces",

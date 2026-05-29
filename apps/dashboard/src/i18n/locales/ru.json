@@ -27,6 +27,21 @@
     "name": "Название сессии",
     "notes": "Заметки (до 200 символов)"
   },
+  "sidebar": {
+    "navigation": "Навигация",
+    "terminal": "Терминал",
+    "sessions": "Сессии",
+    "workspaces": "Пространства",
+    "templates": "Шаблоны",
+    "recordings": "Записи",
+    "envVars": "Переменные",
+    "snippets": "Сниппеты",
+    "logs": "Логи",
+    "admin": "Админ",
+    "settings": "Настройки",
+    "newSession": "Новая сессия",
+    "quickLaunch": "Быстрый запуск"
+  },
   "tabs": {
     "sessions": "Сессии",
     "workspaces": "Рабочие пространства",

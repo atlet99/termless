@@ -91,6 +91,20 @@
       "linter": {
         "enabled": false
       }
+    },
+    {
+      "includes": [
+        "apps/dashboard/src/components/Sidebar.tsx",
+        "apps/dashboard/src/components/ThemeSwitch.tsx",
+        "apps/dashboard/src/components/TopBar.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
     }
   ]
 }
