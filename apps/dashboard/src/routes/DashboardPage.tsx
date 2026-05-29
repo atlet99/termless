@@ -238,7 +238,11 @@ export function DashboardPage() {
           </div>
         )}
 
-        <div className="flex gap-4 mb-6 border-b border-zinc-800 pb-2">
+        <div
+          className="flex gap-4 mb-6 border-b border-zinc-800 pb-2"
+          role="tablist"
+          aria-label="Dashboard sections"
+        >
           {(
             [
               'sessions',
@@ -252,6 +256,8 @@ export function DashboardPage() {
             <button
               key={tab}
               type="button"
+              role="tab"
+              aria-selected={activeTab === tab}
               onClick={() => {
                 setActiveTab(tab as Tab)
               }}

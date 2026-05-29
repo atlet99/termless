@@ -76,7 +76,11 @@ export function LoginPage() {
               required
             />
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-400 text-sm" role="alert" aria-live="polite">
+              {error}
+            </p>
+          )}
           <button
             type="submit"
             disabled={loading}

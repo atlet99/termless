@@ -17,6 +17,7 @@ import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
 import { useEffect, useRef } from 'react'
+import { TERMINAL_THEMES } from '../lib/terminal-themes'
 
 interface ShareViewerProps {
   shareToken: string
@@ -32,21 +33,7 @@ export function ShareViewer({ shareToken }: ShareViewerProps) {
       cursorBlink: false,
       fontSize: 15,
       fontFamily: 'JetBrains Mono, Cascadia Code, monospace',
-      theme: {
-        foreground: '#a9b1d6',
-        background: '#1a1b26',
-        cursor: '#c0caf5',
-        cursorAccent: '#1a1b26',
-        selectionBackground: '#33467c',
-        black: '#15161e',
-        red: '#f7768e',
-        green: '#9ece6a',
-        yellow: '#e0af68',
-        blue: '#7aa2f7',
-        magenta: '#bb9af7',
-        cyan: '#7dcfff',
-        white: '#a9b1d6',
-      },
+      theme: TERMINAL_THEMES['tokyo-night'] ?? {},
       disableStdin: true,
     })
 
