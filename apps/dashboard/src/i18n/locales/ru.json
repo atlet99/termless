@@ -37,6 +37,7 @@
     "envVars": "Переменные",
     "snippets": "Сниппеты",
     "logs": "Логи",
+    "processes": "Процессы",
     "admin": "Админ",
     "settings": "Настройки",
     "newSession": "Новая сессия",

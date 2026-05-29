@@ -22,6 +22,7 @@ export type NavItem =
   | 'recordings'
   | 'env-vars'
   | 'snippets'
+  | 'processes'
   | 'logs'
   | 'admin'
   | 'settings'
@@ -43,6 +44,7 @@ const NAV_ITEMS: { id: NavItem; labelKey: string; icon: string }[] = [
   { id: 'recordings', labelKey: 'sidebar.recordings', icon: 'rec' },
   { id: 'env-vars', labelKey: 'sidebar.envVars', icon: 'settings' },
   { id: 'snippets', labelKey: 'sidebar.snippets', icon: 'snippets' },
+  { id: 'processes', labelKey: 'sidebar.processes', icon: 'processes' },
   { id: 'logs', labelKey: 'sidebar.logs', icon: 'logs' },
 ]
 
@@ -92,6 +94,13 @@ function NavIcon({ icon, size = 20 }: { icon: string; size?: number }) {
       return (
         <svg {...p}>
           <path d="M4 4L1 8l3 4M12 4l3 4-3 4M10 2L6 14" />
+        </svg>
+      )
+    case 'processes':
+      return (
+        <svg {...p}>
+          <rect x="2" y="2" width="12" height="12" rx="1" />
+          <path d="M5 5h6M5 8h6M5 11h3" />
         </svg>
       )
     case 'logs':

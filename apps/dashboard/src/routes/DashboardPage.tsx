@@ -22,10 +22,12 @@ import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
 import { EnvVarsManager } from '../components/EnvVarsManager'
 import { LogsPage } from '../components/LogsPage'
 import { OfflineBanner } from '../components/OfflineBanner'
+import { ProcessesPage } from '../components/ProcessesPage'
 import { RecordingsList } from '../components/RecordingsList'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { type NavItem, Sidebar } from '../components/Sidebar'
 import { SnippetManager } from '../components/SnippetManager'
+import { SystemPanel } from '../components/SystemPanel'
 import { TemplatesManager } from '../components/TemplatesManager'
 import { TerminalView } from '../components/Terminal'
 import { TerminalStatusBar } from '../components/TerminalStatusBar'
@@ -173,6 +175,7 @@ export function DashboardPage() {
             setActiveSessionId(null)
           }}
         />
+        <SystemPanel />
         {showSettings && preferences && (
           <SettingsPanel
             preferences={preferences}
@@ -214,7 +217,15 @@ export function DashboardPage() {
         {showPalette && (
           <CommandPalette
             snippets={snippets ?? []}
-            onSelect={(command) => {
+            onNavigate={(page) => {
+              setShowPalette(false)
+              setActiveNav(page)
+            }}
+            onNewSession={(tool) => {
+              setShowPalette(false)
+              handleNewSession(tool)
+            }}
+            onSelectSnippet={(command) => {
               setShowPalette(false)
               if (activeSessionId) {
                 void api.post(`/api/v1/sessions/${activeSessionId}/exec`, { command })
@@ -287,6 +298,7 @@ export function DashboardPage() {
             {activeNav === 'env-vars' && <EnvVarsManager />}
             {activeNav === 'snippets' && <SnippetManager />}
             {activeNav === 'templates' && <TemplatesManager />}
+            {activeNav === 'processes' && <ProcessesPage />}
             {activeNav === 'logs' && <LogsPage />}
             {activeNav === 'admin' && user?.role === 'ADMIN' && <AdminPanel />}
             {activeNav === 'settings' && preferences && (
@@ -304,7 +316,15 @@ export function DashboardPage() {
       {showPalette && (
         <CommandPalette
           snippets={snippets ?? []}
-          onSelect={(command) => {
+          onNavigate={(page) => {
+            setShowPalette(false)
+            setActiveNav(page)
+          }}
+          onNewSession={(tool) => {
+            setShowPalette(false)
+            handleNewSession(tool)
+          }}
+          onSelectSnippet={(command) => {
             setShowPalette(false)
             if (activeSessionId) {
               void api.post(`/api/v1/sessions/${activeSessionId}/exec`, { command })

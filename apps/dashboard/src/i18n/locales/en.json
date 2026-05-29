@@ -37,6 +37,7 @@
     "envVars": "Env Vars",
     "snippets": "Snippets",
     "logs": "Logs",
+    "processes": "Processes",
     "admin": "Admin",
     "settings": "Settings",
     "newSession": "New Session",
