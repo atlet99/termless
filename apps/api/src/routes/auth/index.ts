@@ -26,6 +26,8 @@ import { triggerWebhook } from '../webhooks/index.js'
 import { eventBus } from '../../lib/event-bus.js'
 import type { FastifyInstance } from 'fastify'
 
+const AUTH_LOGIN_ACTION = 'auth.login'
+
 export async function registerAuthRoutes(fastify: FastifyInstance) {
   const redisUrl = process.env.REDIS_URL
 
@@ -85,10 +87,10 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       )
 
       authAttemptsTotal.inc({ mode: 'local', result: 'success' })
-      void fastify.audit(user.id, 'auth.login', undefined, request.ip)
-      void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
+      void fastify.audit(user.id, AUTH_LOGIN_ACTION, undefined, request.ip)
+      void triggerWebhook(fastify, AUTH_LOGIN_ACTION, { userId: user.id }, user.id)
       eventBus.publish(user.id, {
-        type: 'auth.login',
+        type: AUTH_LOGIN_ACTION,
         timestamp: new Date().toISOString(),
         data: { userId: user.id },
       })
@@ -138,8 +140,55 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       schema: { tags: ['auth'], description: 'Start OIDC flow' },
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     },
-    async (_request, reply) => {
-      return reply.code(501).send({ error: 'OIDC not yet configured' })
+    async (request, reply) => {
+      const issuerUrl = process.env.OIDC_ISSUER_URL
+      const clientId = process.env.OIDC_CLIENT_ID
+
+      if (!issuerUrl || !clientId) {
+        return reply
+          .code(501)
+          .send({ error: 'OIDC not configured. Set OIDC_ISSUER_URL and OIDC_CLIENT_ID.' })
+      }
+
+      try {
+        const oidc = await import('openid-client')
+        const config = await oidc.discovery(
+          new URL(issuerUrl),
+          clientId,
+          undefined,
+          oidc.ClientSecretPost(process.env.OIDC_CLIENT_SECRET ?? ''),
+        )
+
+        const codeVerifier = oidc.randomPKCECodeVerifier()
+        const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier)
+        const state = oidc.randomState()
+        const nonce = oidc.randomNonce()
+
+        if (redisUrl) {
+          const { getRedisClient } = await import('@termless/auth')
+          const redis = await getRedisClient(redisUrl)
+          await redis.set(`termless:oidc:${state}`, JSON.stringify({ codeVerifier, nonce }), {
+            EX: 300,
+          })
+        }
+
+        const redirectUri = `${process.env.API_PUBLIC_URL ?? ''}/auth/oidc/callback`
+        const authEndpoint = config.serverMetadata().authorization_endpoint
+        if (!authEndpoint) return await reply.code(500).send({ error: 'No authorization endpoint' })
+        const authUrl = new URL(authEndpoint)
+        authUrl.searchParams.set('client_id', clientId)
+        authUrl.searchParams.set('response_type', 'code')
+        authUrl.searchParams.set('scope', 'openid email profile')
+        authUrl.searchParams.set('code_challenge', codeChallenge)
+        authUrl.searchParams.set('code_challenge_method', 'S256')
+        authUrl.searchParams.set('state', state)
+        authUrl.searchParams.set('nonce', nonce)
+        authUrl.searchParams.set('redirect_uri', redirectUri)
+
+        return await reply.redirect(authUrl.toString())
+      } catch {
+        return reply.code(500).send({ error: 'OIDC discovery failed' })
+      }
     },
   )
 
@@ -148,8 +197,81 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     {
       schema: { tags: ['auth'], hide: true, description: 'OIDC callback' },
     },
-    async (_request, reply) => {
-      return reply.code(501).send({ error: 'OIDC not yet configured' })
+    async (request, reply) => {
+      const issuerUrl = process.env.OIDC_ISSUER_URL
+      const clientId = process.env.OIDC_CLIENT_ID
+      const redirectUri = `${process.env.API_PUBLIC_URL ?? ''}/auth/oidc/callback`
+
+      if (!issuerUrl || !clientId || !redisUrl) {
+        return reply.code(501).send({ error: 'OIDC not configured' })
+      }
+
+      const query = request.query as Record<string, string | undefined>
+      const state = query.state
+      if (!state) return reply.code(400).send({ error: 'Missing state' })
+
+      try {
+        const { getRedisClient } = await import('@termless/auth')
+        const redis = await getRedisClient(redisUrl)
+        const stored = await redis.get(`termless:oidc:${state}`)
+        if (!stored) return await reply.code(400).send({ error: 'Invalid or expired state' })
+        await redis.del(`termless:oidc:${state}`)
+
+        JSON.parse(stored) as {
+          codeVerifier: string
+          nonce: string
+        }
+
+        const oidc = await import('openid-client')
+        const config = await oidc.discovery(
+          new URL(issuerUrl),
+          clientId,
+          undefined,
+          oidc.ClientSecretPost(process.env.OIDC_CLIENT_SECRET ?? ''),
+        )
+
+        const currentUrl = new URL(
+          `${redirectUri}?${new URLSearchParams(query as Record<string, string>)}`,
+        )
+        const tokenResponse = await oidc.authorizationCodeGrant(config, currentUrl, {
+          expectedState: state,
+        })
+
+        const claims = tokenResponse.claims()
+        const email = (claims?.email as string) ?? ''
+        const displayName = ((claims?.name as string) ?? email) || ''
+
+        if (!email) return await reply.code(400).send({ error: 'No email in OIDC claims' })
+
+        let user = await fastify.prisma.user.findUnique({ where: { email } })
+        if (!user) {
+          user = await fastify.prisma.user.create({
+            data: { email, displayName, role: 'DEVELOPER' },
+          })
+        }
+
+        const ttlSeconds = 8 * 60 * 60
+        const token = await createSession(
+          redisUrl,
+          {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName,
+            role: user.role,
+          },
+          ttlSeconds,
+        )
+
+        authAttemptsTotal.inc({ mode: 'oidc', result: 'success' })
+        void fastify.audit(user.id, 'auth.login', { mode: 'oidc' }, request.ip)
+        void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
+
+        const frontendUrl = process.env.FRONTEND_URL ?? '/'
+        return await reply.redirect(`${frontendUrl}#token=${token}`)
+      } catch {
+        authAttemptsTotal.inc({ mode: 'oidc', result: 'failure' })
+        return reply.code(500).send({ error: 'OIDC callback failed' })
+      }
     },
   )
 

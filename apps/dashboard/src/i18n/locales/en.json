@@ -15,15 +15,90 @@
     "connect": "Connect",
     "delete": "Delete",
     "back": "← Back",
-    "logout": "Logout"
+    "logout": "Logout",
+    "settings": "Settings",
+    "viewAuditLog": "View Audit Log"
   },
   "session": {
     "newOpencode": "+ Opencode",
     "newClaude": "+ Claude",
     "newBash": "+ Bash",
-    "connected": "Connected to Termless terminal"
+    "connected": "Connected to Termless terminal",
+    "name": "Session name",
+    "notes": "Notes (max 200 chars)"
+  },
+  "tabs": {
+    "sessions": "Sessions",
+    "workspaces": "Workspaces",
+    "recordings": "Recordings",
+    "envVars": "Env Vars",
+    "snippets": "Snippets"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "create": "Create",
+    "clone": "Clone",
+    "delete": "Delete",
+    "newName": "New workspace name",
+    "gitUrl": "Git URL",
+    "name": "Name",
+    "empty": "No workspaces yet"
+  },
+  "recordings": {
+    "title": "Recordings",
+    "download": "Download",
+    "delete": "Delete",
+    "empty": "No recordings yet"
+  },
+  "envVars": {
+    "title": "Environment Variables",
+    "name": "Name (e.g. ANTHROPIC_API_KEY)",
+    "value": "Value",
+    "save": "Save",
+    "delete": "Delete",
+    "empty": "No environment variables configured",
+    "encrypted": "Values are encrypted with AES-256-GCM. Only masked values are shown."
+  },
+  "snippets": {
+    "title": "Snippets",
+    "name": "Name (e.g. Restart API)",
+    "command": "Command (e.g. docker compose restart api)",
+    "tags": "Tags (comma-separated, e.g. docker, dev)",
+    "add": "Add Snippet",
+    "delete": "Delete",
+    "empty": "No snippets yet",
+    "hint": "Use Ctrl+Shift+P in terminal to quickly insert snippets"
+  },
+  "audit": {
+    "title": "Audit Log",
+    "exportCsv": "Export CSV",
+    "userId": "User ID",
+    "action": "Action (e.g. auth.login)",
+    "time": "Time",
+    "user": "User",
+    "details": "Details",
+    "ip": "IP",
+    "prev": "Prev",
+    "next": "Next"
+  },
+  "admin": {
+    "title": "Admin",
+    "users": "Users",
+    "auditLog": "Audit Log"
+  },
+  "invite": {
+    "pairSession": "Pair Session",
+    "invitedBy": "Invited by",
+    "invalid": "Invalid or expired invite",
+    "loading": "Loading invite..."
+  },
+  "share": {
+    "readOnly": "Read-Only"
   },
   "common": {
-    "error": "Error"
+    "error": "Error",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel"
   }
 }

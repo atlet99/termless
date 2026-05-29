@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AdminPanel } from '../components/AdminPanel'
 import { CommandPalette } from '../components/CommandPalette'
 import { EmbeddedTerminalLayout } from '../components/EmbeddedTerminalLayout'
 import { EnvVarsManager } from '../components/EnvVarsManager'
@@ -27,7 +28,7 @@ import { api } from '../lib/api'
 import { useNotifications } from '../lib/notifications'
 import { useAuthStore } from '../stores/auth'
 
-type Tab = 'sessions' | 'workspaces' | 'recordings' | 'env-vars' | 'snippets'
+type Tab = 'sessions' | 'workspaces' | 'recordings' | 'env-vars' | 'snippets' | 'admin'
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation()
@@ -75,13 +76,19 @@ export function DashboardPage() {
     queryFn: () => api.getSnippets(),
   })
 
+  const { data: templates } = useQuery({
+    queryKey: ['templates'],
+    queryFn: () => api.get('/api/v1/templates'),
+  })
+
   const updatePreferences = useMutation({
     mutationFn: (prefs: Record<string, string>) => api.updatePreferences(prefs),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['preferences'] }),
   })
 
   const createSession = useMutation({
-    mutationFn: (tool: string) => api.createSession(tool),
+    mutationFn: ({ tool, templateId }: { tool: string; templateId?: string }) =>
+      api.post('/api/v1/sessions', { tool, templateId }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
   })
 
@@ -232,39 +239,47 @@ export function DashboardPage() {
         )}
 
         <div className="flex gap-4 mb-6 border-b border-zinc-800 pb-2">
-          {(['sessions', 'workspaces', 'recordings', 'env-vars', 'snippets'] as const).map(
-            (tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => {
-                  setActiveTab(tab)
-                }}
-                className={`text-sm pb-1 border-b-2 transition-colors ${
-                  activeTab === tab
-                    ? 'border-purple-500 text-purple-400'
-                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ),
-          )}
+          {(
+            [
+              'sessions',
+              'workspaces',
+              'recordings',
+              'env-vars',
+              'snippets',
+              ...(user?.role === 'ADMIN' ? ['admin'] : []),
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => {
+                setActiveTab(tab as Tab)
+              }}
+              className={`text-sm pb-1 border-b-2 transition-colors ${
+                activeTab === tab
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {tab === 'env-vars' ? 'Env Vars' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
 
         {activeTab === 'workspaces' && <WorkspaceManager />}
         {activeTab === 'recordings' && <RecordingsList />}
         {activeTab === 'env-vars' && <EnvVarsManager />}
         {activeTab === 'snippets' && <SnippetManager />}
+        {activeTab === 'admin' && user?.role === 'ADMIN' && <AdminPanel />}
         {activeTab === 'sessions' && (
           <>
-            <div className="flex gap-4 mb-8">
+            <div className="flex gap-4 mb-4">
               {(['OPENCODE', 'CLAUDE', 'BASH'] as const).map((tool) => (
                 <button
                   key={tool}
                   type="button"
                   onClick={() => {
-                    createSession.mutate(tool)
+                    createSession.mutate({ tool })
                   }}
                   disabled={createSession.isPending}
                   className="px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 hover:bg-zinc-700 transition-colors"
@@ -273,6 +288,26 @@ export function DashboardPage() {
                 </button>
               ))}
             </div>
+
+            {templates && (templates as any[]).length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-zinc-400 mb-2">From Template</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(templates as any[]).map((tpl: any) => (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => {
+                        createSession.mutate({ tool: tpl.tool, templateId: tpl.id })
+                      }}
+                      className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+                    >
+                      {tpl.name} ({tpl.tool})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <h2 className="text-lg font-semibold text-zinc-200 mb-4">
               {t('dashboard.activeSessions')}

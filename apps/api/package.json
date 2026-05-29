@@ -37,6 +37,7 @@
     "@termless/worker": "workspace:*",
     "fastify": "catalog:",
     "fastify-plugin": "^5.0.1",
+    "openid-client": "^6.8.4",
     "pino": "catalog:",
     "zod": "catalog:"
   },
