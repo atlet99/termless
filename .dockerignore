@@ -3,12 +3,14 @@ node_modules
 .pnpm-store
 .turbo
 dist
+build
 coverage
 .env
 .env.*
 !.env.example
+*.log
+.DS_Store
 .vscode
 .idea
-*.tsbuildinfo
 backups
 test_results

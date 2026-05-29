@@ -4,37 +4,43 @@ services:
       context: .
       dockerfile: infra/docker/api.Dockerfile
     restart: unless-stopped
-    environment:
-      - NODE_ENV=production
     env_file: .env
     volumes:
       - workspace:/workspace
-      - /etc/sudoers.d:/etc/sudoers.d
+      - /etc/sudoers.d:/etc/sudoers.d:ro
     cap_add:
       - SYS_ADMIN
     security_opt:
       - no-new-privileges:false
     depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    networks: [termless]
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - termless
 
   dashboard:
     build:
       context: .
       dockerfile: infra/docker/dashboard.Dockerfile
     restart: unless-stopped
-    networks: [termless]
+    networks:
+      - termless
 
   caddy:
     image: caddy:2.9-alpine
     restart: unless-stopped
-    ports: ["80:80", "443:443", "443:443/udp"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks: [termless]
+    networks:
+      - termless
 
   postgres:
     image: postgres:17-alpine
@@ -42,7 +48,7 @@ services:
     environment:
       POSTGRES_DB: termless
       POSTGRES_USER: termless
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-termless}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -50,42 +56,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [termless]
+    networks:
+      - termless
 
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-termless}
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "--pass", "${REDIS_PASSWORD:-termless}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [termless]
+    networks:
+      - termless
 
 volumes:
   workspace:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./test_results/volumes/workspace
   pgdata:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./test_results/volumes/postgres
   redisdata:
     driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./test_results/volumes/redis
   caddy_data:
+    driver: local
   caddy_config:
+    driver: local
 
 networks:
   termless:
