@@ -45,13 +45,7 @@ export function EnvVarsManager() {
   })
 
   const deleteEnvVar = useMutation({
-    mutationFn: (varName: string) =>
-      fetch(`/api/v1/env-vars/${encodeURIComponent(varName)}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('termless_token') ?? ''}`,
-        },
-      }),
+    mutationFn: (varName: string) => api.delete(`/api/v1/env-vars/${encodeURIComponent(varName)}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['env-vars'] })
     },

@@ -23,10 +23,10 @@ const getSecretKey = (): Buffer => {
   if (key?.length === 64) {
     return Buffer.from(key, 'hex')
   }
-  console.warn(
-    'WARNING: Using ephemeral encryption key. Set ENCRYPTION_KEY env var (64 hex chars).',
+  throw new Error(
+    'ENCRYPTION_KEY must be set to a 64-character hex string (32 bytes). ' +
+      'Generate with: openssl rand -hex 32',
   )
-  return crypto.randomBytes(32)
 }
 
 const SECRET_KEY = getSecretKey()

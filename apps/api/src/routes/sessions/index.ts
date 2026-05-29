@@ -19,10 +19,10 @@ import type { FastifyInstance } from 'fastify'
 import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
 import { triggerWebhook } from '../webhooks/index.js'
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const SYSTEM_UID_MIN = 2000
 const SYSTEM_UID_MAX = 60000
@@ -38,9 +38,12 @@ async function checkDiskQuota(
   try {
     // Use dust for faster disk usage calculation
     // dust -o m outputs size in MiB (e.g., "1024.5 /path")
-    const { stdout } = await execAsync(
-      `dust -o m --skip-total "${workspacePath}" 2>/dev/null || echo "0 /"`,
-    )
+    const { stdout } = await execFileAsync('dust', [
+      '-o',
+      'm',
+      '--skip-total',
+      workspacePath,
+    ]).catch(() => ({ stdout: '0 /' }))
     // Parse: "1024.5 /path" or "1.2G /path"
     const match = stdout
       .split('\n')[0]
@@ -286,25 +289,28 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({ error: 'User system account not found' })
       }
 
-      try {
-        const escaped = body.command.replaceAll("'", String.raw`'\''`)
-        execAsync(
-          `sudo -u termless-user-${sessionUser.systemUid} tmux send-keys -t ${session.tmuxSession} '${escaped}' Enter`,
-        ).catch(() => {
-          // Fire-and-forget: tmux send-keys may fail if session is dead
-        })
+      const sudoUser = `termless-user-${sessionUser.systemUid}`
+      execFileAsync('sudo', [
+        '-u',
+        sudoUser,
+        'tmux',
+        'send-keys',
+        '-t',
+        session.tmuxSession,
+        body.command,
+        'Enter',
+      ]).catch(() => {
+        // Fire-and-forget: tmux send-keys may fail if session is dead
+      })
 
-        void fastify.audit(
-          user.id,
-          'session.exec',
-          { sessionId: id, command: body.command },
-          request.ip,
-        )
+      void fastify.audit(
+        user.id,
+        'session.exec',
+        { sessionId: id, command: body.command },
+        request.ip,
+      )
 
-        return { ok: true }
-      } catch {
-        return reply.code(500).send({ error: 'Failed to execute command' })
-      }
+      return { ok: true }
     },
   )
 

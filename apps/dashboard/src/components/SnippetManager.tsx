@@ -47,13 +47,7 @@ export function SnippetManager() {
   })
 
   const deleteSnippet = useMutation({
-    mutationFn: (id: string) =>
-      fetch(`/api/v1/snippets/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('termless_token') ?? ''}`,
-        },
-      }),
+    mutationFn: (id: string) => api.delete(`/api/v1/snippets/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['snippets'] })
     },

@@ -267,7 +267,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
 
         const frontendUrl = process.env.FRONTEND_URL ?? '/'
-        return await reply.redirect(`${frontendUrl}#token=${token}`)
+        reply.setCookie('termless_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: ttlSeconds,
+        })
+        return await reply.redirect(frontendUrl)
       } catch {
         authAttemptsTotal.inc({ mode: 'oidc', result: 'failure' })
         return reply.code(500).send({ error: 'OIDC callback failed' })

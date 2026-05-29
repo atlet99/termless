@@ -40,6 +40,20 @@ export const api = {
       ...(body ? { body: JSON.stringify(body) } : {}),
     }),
 
+  put: <T>(path: string, body?: unknown) =>
+    fetchApi<T>(path, {
+      method: 'PUT',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }),
+
+  patch: <T>(path: string, body?: unknown) =>
+    fetchApi<T>(path, {
+      method: 'PATCH',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }),
+
+  delete: <T>(path: string) => fetchApi<T>(path, { method: 'DELETE' }),
+
   login: (email: string, password: string) =>
     fetchApi<{ token: string; user: any }>('/auth/login', {
       method: 'POST',

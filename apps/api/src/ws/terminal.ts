@@ -156,16 +156,23 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
         }
       })
 
+      let lastSeenAtUpdate = 0
       socket.on('message', (data: unknown) => {
         if (typeof data === 'string') {
           ttydSocket.send(data)
         }
-        // Update last seen timestamp for idle timeout
-        if (session && SESSION_IDLE_TIMEOUT_MS > 0) {
-          fastify.prisma.session.update({
-            where: { id: session.id },
-            data: { lastSeenAt: new Date() },
-          })
+        // Throttle lastSeenAt updates to once per 30 seconds
+        const now = Date.now()
+        if (session && SESSION_IDLE_TIMEOUT_MS > 0 && now - lastSeenAtUpdate > 30_000) {
+          lastSeenAtUpdate = now
+          fastify.prisma.session
+            .update({
+              where: { id: session.id },
+              data: { lastSeenAt: new Date() },
+            })
+            .catch(() => {
+              // Ignore update errors
+            })
         }
       })
 
