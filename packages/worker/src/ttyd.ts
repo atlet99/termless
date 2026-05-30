@@ -68,7 +68,7 @@ export function startTtyd(options: TtydOptions): ChildProcess {
     `theme=${JSON.stringify(TOKYO_NIGHT_THEME)}`,
     'bash',
     '-c',
-    String.raw`sudo -u termless-user-${String(userId)} tmux new-session -A -s ${JSON.stringify(tmuxSession)} -c ${JSON.stringify(workspacePath)}`,
+    `sudo -u termless-user-${String(userId)} tmux new-session -A -s ${JSON.stringify(tmuxSession)} -c ${JSON.stringify(workspacePath)}`,
   ]
 
   const spawnOptions: SpawnOptions = {
