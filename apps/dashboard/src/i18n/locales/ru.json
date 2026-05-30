@@ -98,9 +98,9 @@
     "next": "Вперёд"
   },
   "admin": {
-    "title": "Администрирование",
-    "users": "Пользователи",
-    "auditLog": "Журнал аудита"
+    "title": "Управление пользователями",
+    "auditLog": "Журнал аудита",
+    "actionPlaceholder": "Действие (напр. auth.login)"
   },
   "invite": {
     "pairSession": "Парная сессия",

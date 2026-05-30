@@ -98,9 +98,9 @@
     "next": "Next"
   },
   "admin": {
-    "title": "Admin",
-    "users": "Users",
-    "auditLog": "Audit Log"
+    "title": "User Management",
+    "auditLog": "Audit Log",
+    "actionPlaceholder": "Action (e.g. auth.login)"
   },
   "invite": {
     "pairSession": "Pair Session",
