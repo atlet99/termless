@@ -14,7 +14,7 @@
 
 import { createSessionSchema, execCommandSchema, patchSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
-import { provisionOsUser, startTtyd } from '@termless/worker'
+import { getActivePorts, provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
 import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
@@ -173,7 +173,19 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
         },
       })
 
-      const port = 10000 + Math.floor(Math.random() * 50000)
+      // Allocate port with collision check
+      const usedPorts = new Set(getActivePorts())
+      let port: number
+      let attempts = 0
+      do {
+        port = 10_000 + Math.floor(Math.random() * 50_000)
+        attempts++
+      } while (usedPorts.has(port) && attempts < 100)
+
+      if (usedPorts.has(port)) {
+        return reply.code(503).send({ error: 'No available ports' })
+      }
+
       startTtyd({
         port,
         userId: systemUid,

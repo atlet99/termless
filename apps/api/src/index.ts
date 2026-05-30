@@ -158,4 +158,7 @@ async function main() {
   }
 }
 
-main()
+main().catch((err: unknown) => {
+  console.error('Fatal startup error:', err)
+  process.exit(1)
+})

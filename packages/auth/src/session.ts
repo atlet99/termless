@@ -21,6 +21,7 @@ let redisClient: RedisClientType | null = null
 /**
  * Get or create a Redis client connection.
  * Reuses existing connection if available.
+ * Reconnects automatically on error.
  *
  * @param redisUrl - Redis connection URL
  * @returns Connected Redis client
@@ -28,7 +29,11 @@ let redisClient: RedisClientType | null = null
 export async function getRedisClient(redisUrl: string): Promise<RedisClientType> {
   if (!redisClient) {
     redisClient = createClient({ url: redisUrl })
-    redisClient.on('error', (err) => console.error('Redis error:', err))
+    redisClient.on('error', (err) => {
+      console.error('Redis error:', err)
+      // Reset client so next call creates a new connection
+      redisClient = null
+    })
     await redisClient.connect()
   }
   return redisClient

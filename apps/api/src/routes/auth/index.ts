@@ -26,6 +26,22 @@ import { triggerWebhook } from '../webhooks/index.js'
 import { eventBus } from '../../lib/event-bus.js'
 import type { FastifyInstance } from 'fastify'
 
+// In-memory store for pending TOTP secrets (until verification)
+const pendingTotpSecrets = new Map<string, { secret: string; expiresAt: number }>()
+
+// Cleanup expired entries every 5 minutes
+setInterval(
+  () => {
+    const now = Date.now()
+    for (const [key, value] of pendingTotpSecrets) {
+      if (value.expiresAt < now) {
+        pendingTotpSecrets.delete(key)
+      }
+    }
+  },
+  5 * 60 * 1000,
+)
+
 const AUTH_LOGIN_ACTION = 'auth.login'
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
@@ -58,12 +74,12 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         return reply.code(401).send({ error: 'Invalid credentials' })
       }
 
-      if (user.totpSecret) {
+      if (user.totpSecret && user.totpVerified) {
         if (!body.totpCode || !verifyTotpCode(user.totpSecret, body.totpCode)) {
           authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
           return reply.code(401).send({ error: 'Invalid TOTP code' })
         }
-      } else if (user.totpVerified || user.role === 'ADMIN' || user.role === 'OPERATOR') {
+      } else if (user.role === 'ADMIN' || user.role === 'OPERATOR') {
         authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
         return reply.code(403).send({
           error: 'TOTP setup required',
@@ -217,7 +233,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         if (!stored) return await reply.code(400).send({ error: 'Invalid or expired state' })
         await redis.del(`termless:oidc:${state}`)
 
-        JSON.parse(stored) as {
+        const storedData = JSON.parse(stored) as {
           codeVerifier: string
           nonce: string
         }
@@ -235,6 +251,8 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         )
         const tokenResponse = await oidc.authorizationCodeGrant(config, currentUrl, {
           expectedState: state,
+          pkceCodeVerifier: storedData.codeVerifier,
+          expectedNonce: storedData.nonce,
         })
 
         const claims = tokenResponse.claims()
@@ -298,14 +316,16 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
       if (!dbUser) return reply.code(404).send({ error: 'User not found' })
 
-      if (dbUser.totpSecret) {
+      if (dbUser.totpVerified) {
         return reply.send({ message: 'TOTP already set up' })
       }
 
       const { secret, uri } = generateTotpSecret(dbUser.email)
-      await fastify.prisma.user.update({
-        where: { id: user.id },
-        data: { totpSecret: secret },
+
+      // Store secret temporarily in memory (not in DB) until verification
+      pendingTotpSecrets.set(user.id, {
+        secret,
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 min TTL
       })
 
       return { secret, uri }
@@ -332,18 +352,31 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       if (!user) return reply.code(401).send({ error: 'Not authenticated' })
 
       const body = totpSetupSchema.parse(request.body)
-      const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
-      if (!dbUser?.totpSecret) {
-        return reply.code(400).send({ error: 'TOTP not set up' })
+
+      // Read pending secret from in-memory store
+      const pending = pendingTotpSecrets.get(user.id)
+      let secret: string | null = pending?.secret ?? null
+
+      // Fallback to DB if not in memory (for already-setup users)
+      if (!secret) {
+        const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
+        secret = dbUser?.totpSecret ?? null
       }
 
-      if (!verifyTotpCode(dbUser.totpSecret, body.totpCode)) {
+      if (!secret) {
+        return reply.code(400).send({ error: 'TOTP not set up. Call /auth/totp/setup first.' })
+      }
+
+      if (!verifyTotpCode(secret, body.totpCode)) {
         return reply.code(401).send({ error: 'Invalid TOTP code' })
       }
 
+      // Clean up pending secret
+      pendingTotpSecrets.delete(user.id)
+
       await fastify.prisma.user.update({
         where: { id: user.id },
-        data: { totpVerified: true },
+        data: { totpSecret: secret, totpVerified: true },
       })
 
       return { ok: true }

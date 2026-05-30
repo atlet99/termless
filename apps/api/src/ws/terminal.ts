@@ -214,6 +214,10 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       ttydSocket.on('error', () => {
         socket.close(5000, 'ttyd connection error')
       })
+
+      socket.on('error', () => {
+        ttydSocket.close()
+      })
     },
   )
 }
