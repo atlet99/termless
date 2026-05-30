@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { createWorkspaceSchema } from '@termless/shared'
+import { cloneWorkspaceSchema, createWorkspaceSchema } from '@termless/shared'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
@@ -250,10 +250,7 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
-      const body = request.body as { url?: string; name?: string }
-      if (!body.url || !body.name) {
-        return reply.code(400).send({ error: 'Missing url or name' })
-      }
+      const body = cloneWorkspaceSchema.parse(request.body)
 
       // Validate git URL format
       const gitUrlPattern = /^(https?:\/\/|git@)\S+$/

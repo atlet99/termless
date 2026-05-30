@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 
-import { createSessionSchema } from '@termless/shared'
+import { createSessionSchema, execCommandSchema, patchSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
 import { provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
@@ -269,10 +269,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
-      const body = request.body as { command?: string }
-      if (!body.command || typeof body.command !== 'string') {
-        return reply.code(400).send({ error: 'Missing command' })
-      }
+      const body = execCommandSchema.parse(request.body)
 
       const prisma = fastify.prisma
       const session = await prisma.session.findUnique({ where: { id } })
@@ -325,7 +322,7 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       const user = request.user
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
-      const body = request.body as { name?: string; notes?: string }
+      const body = patchSessionSchema.parse(request.body)
       const prisma = fastify.prisma
 
       const session = await prisma.session.findUnique({ where: { id } })

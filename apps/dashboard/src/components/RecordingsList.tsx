@@ -14,6 +14,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface Recording {
@@ -37,9 +38,12 @@ export function RecordingsList() {
   })
 
   const deleteRecording = useMutation({
-    mutationFn: (id: string) => api.post(`/api/v1/recordings/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => api.delete(`/api/v1/recordings/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['recordings'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 

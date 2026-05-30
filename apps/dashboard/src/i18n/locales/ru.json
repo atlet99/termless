@@ -56,6 +56,7 @@
     "clone": "Клонировать",
     "delete": "Удалить",
     "newName": "Название пространства",
+    "pathPlaceholder": "напр. /workspace/my-project",
     "gitUrl": "Git URL",
     "name": "Название",
     "empty": "Нет рабочих пространств"

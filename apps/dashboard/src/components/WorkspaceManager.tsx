@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface Workspace {
@@ -36,6 +37,7 @@ export function WorkspaceManager() {
   const [cloneUrl, setCloneUrl] = useState('')
   const [cloneName, setCloneName] = useState('')
   const [newName, setNewName] = useState('')
+  const [newPath, setNewPath] = useState('')
 
   const { data: workspaces, isLoading } = useQuery<Workspace[]>({
     queryKey: ['workspaces'],
@@ -43,10 +45,15 @@ export function WorkspaceManager() {
   })
 
   const createWorkspace = useMutation({
-    mutationFn: (name: string) => api.post('/api/v1/workspaces', { name }),
+    mutationFn: ({ name, path }: { name: string; path: string }) =>
+      api.post('/api/v1/workspaces', { name, path }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['workspaces'] })
       setNewName('')
+      setNewPath('')
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
@@ -61,9 +68,12 @@ export function WorkspaceManager() {
   })
 
   const deleteWorkspace = useMutation({
-    mutationFn: (id: string) => api.post(`/api/v1/workspaces/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => api.delete(`/api/v1/workspaces/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
@@ -75,23 +85,34 @@ export function WorkspaceManager() {
 
       {/* Create */}
       <div
-        className="flex gap-3 mb-3 p-4 rounded-xl"
+        className="flex flex-col gap-3 mb-3 p-4 rounded-xl"
         style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
       >
-        <input
-          placeholder={t('workspaces.newName')}
-          value={newName}
-          onChange={(e) => {
-            setNewName(e.target.value)
-          }}
-          className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
-          style={inputStyle}
-        />
+        <div className="flex gap-3">
+          <input
+            placeholder={t('workspaces.newName')}
+            value={newName}
+            onChange={(e) => {
+              setNewName(e.target.value)
+            }}
+            className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+            style={inputStyle}
+          />
+          <input
+            placeholder={t('workspaces.pathPlaceholder')}
+            value={newPath}
+            onChange={(e) => {
+              setNewPath(e.target.value)
+            }}
+            className="flex-1 rounded-md px-3 py-2 text-sm outline-none font-mono"
+            style={inputStyle}
+          />
+        </div>
         <button
           type="button"
-          disabled={!newName.trim() || createWorkspace.isPending}
+          disabled={!newName.trim() || !newPath.trim() || createWorkspace.isPending}
           onClick={() => {
-            createWorkspace.mutate(newName.trim())
+            createWorkspace.mutate({ name: newName.trim(), path: newPath.trim() })
           }}
           className="rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           style={{

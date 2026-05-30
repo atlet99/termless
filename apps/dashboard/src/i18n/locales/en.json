@@ -56,6 +56,7 @@
     "clone": "Clone",
     "delete": "Delete",
     "newName": "New workspace name",
+    "pathPlaceholder": "e.g. /workspace/my-project",
     "gitUrl": "Git URL",
     "name": "Name",
     "empty": "No workspaces yet"

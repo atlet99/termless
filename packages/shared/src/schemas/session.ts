@@ -54,7 +54,18 @@ export const createPlaybackShareSchema = z.object({
   expiresIn: z.enum(['1h', '24h', '7d']),
 })
 
+export const execCommandSchema = z.object({
+  command: z.string().min(1).max(10_000),
+})
+
+export const patchSessionSchema = z.object({
+  name: z.string().max(100).optional(),
+  notes: z.string().max(200).optional(),
+})
+
 export type CreateSessionInput = z.infer<typeof createSessionSchema>
 export type Session = z.infer<typeof sessionSchema>
 export type Recording = z.infer<typeof recordingSchema>
 export type CreatePlaybackShareInput = z.infer<typeof createPlaybackShareSchema>
+export type ExecCommandInput = z.infer<typeof execCommandSchema>
+export type PatchSessionInput = z.infer<typeof patchSessionSchema>

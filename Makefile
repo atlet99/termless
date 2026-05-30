@@ -38,6 +38,7 @@ include makefiles/lint.mk
 include makefiles/db.mk
 include makefiles/openapi.mk
 include makefiles/checks.mk
+include makefiles/packages.mk
 
 ##@ Compound
 

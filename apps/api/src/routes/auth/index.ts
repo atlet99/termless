@@ -267,7 +267,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
 
         const frontendUrl = process.env.FRONTEND_URL ?? '/'
-        reply.setCookie('termless_token', token, {
+        reply.setCookie('termless_session', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',

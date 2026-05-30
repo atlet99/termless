@@ -20,9 +20,14 @@ import { getSession } from '@termless/auth'
 import fp from 'fastify-plugin'
 
 export const register = fp(async (fastify) => {
+  const sessionSecret = process.env.SESSION_SECRET
+  if (!sessionSecret) {
+    throw new Error('SESSION_SECRET environment variable is required')
+  }
+
   await fastify.register(cookie)
   await fastify.register(session, {
-    secret: process.env.SESSION_SECRET ?? 'change-me-in-production',
+    secret: sessionSecret,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,

@@ -14,6 +14,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface User {
@@ -50,10 +51,12 @@ export function AdminPanel() {
   })
 
   const forceLogout = useMutation({
-    mutationFn: (userId: string) =>
-      api.post(`/api/v1/admin/users/${userId}/sessions`, { method: 'DELETE' }),
+    mutationFn: (userId: string) => api.delete(`/api/v1/admin/users/${userId}/sessions`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 
