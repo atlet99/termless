@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 
 interface User {
@@ -25,7 +26,14 @@ interface User {
 
 const ROLES = ['VIEWER', 'DEVELOPER', 'OPERATOR', 'ADMIN'] as const
 
+const selectStyle = {
+  background: 'var(--color-surface-2)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
 export function AdminPanel() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const { data: users, isLoading } = useQuery<User[]>({
@@ -50,22 +58,26 @@ export function AdminPanel() {
   })
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <h2 className="text-lg font-semibold text-white">User Management</h2>
+    <div>
+      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">{t('admin.title')}</h1>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <p className="text-[var(--color-text-dim)] text-sm">{t('common.loading')}</p>
       ) : (
         <div className="space-y-2">
           {users?.map((u) => (
             <div
               key={u.id}
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg"
+              className="flex items-center justify-between p-4 rounded-xl transition-colors hover:border-[var(--color-accent)]"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+              }}
             >
               <div className="flex-1">
-                <div className="text-sm text-zinc-100">{u.displayName ?? u.email}</div>
-                <div className="text-xs text-zinc-500">{u.email}</div>
-                <div className="text-xs text-zinc-600 font-mono mt-1">
+                <div className="text-sm text-[var(--color-text)]">{u.displayName ?? u.email}</div>
+                <div className="text-xs text-[var(--color-text-dim)]">{u.email}</div>
+                <div className="text-xs text-[var(--color-text-muted)] font-mono mt-1">
                   {u.id} · {new Date(u.createdAt).toLocaleDateString()}
                 </div>
               </div>
@@ -75,7 +87,8 @@ export function AdminPanel() {
                   onChange={(e) => {
                     updateRole.mutate({ userId: u.id, role: e.target.value })
                   }}
-                  className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-xs text-white"
+                  className="rounded-md px-2 py-1 text-xs"
+                  style={selectStyle}
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -88,14 +101,16 @@ export function AdminPanel() {
                   onClick={() => {
                     forceLogout.mutate(u.id)
                   }}
-                  className="text-xs text-zinc-500 hover:text-red-400"
+                  className="text-xs border border-[var(--color-border)] rounded-full px-3 py-1 text-[var(--color-text-dim)] hover:border-[var(--color-red)] hover:text-[var(--color-red)] transition-colors"
                 >
                   Force Logout
                 </button>
               </div>
             </div>
           ))}
-          {(!users || users.length === 0) && <p className="text-zinc-500 text-sm">No users</p>}
+          {(!users || users.length === 0) && (
+            <p className="text-[var(--color-text-dim)] text-sm">No users</p>
+          )}
         </div>
       )}
     </div>

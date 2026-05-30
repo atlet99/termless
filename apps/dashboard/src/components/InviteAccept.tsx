@@ -38,25 +38,31 @@ export function InviteAccept({ inviteToken }: InviteAcceptProps) {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-zinc-950">
-        <div className="text-zinc-400">Loading invite...</div>
+      <div className="h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-[var(--color-text-dim)]">Loading invite...</div>
       </div>
     )
   }
 
   if (error || !invite) {
     return (
-      <div className="h-screen flex items-center justify-center bg-zinc-950">
-        <div className="text-red-400">Invalid or expired invite</div>
+      <div className="h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-[var(--color-red)]">Invalid or expired invite</div>
       </div>
     )
   }
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950">
-      <div className="flex items-center gap-4 px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-        <span className="text-sm text-purple-400">Pair Session</span>
-        <span className="text-sm text-zinc-400">
+    <div className="h-screen flex flex-col bg-[var(--color-bg)]">
+      <div
+        className="flex items-center gap-4 px-4 py-2"
+        style={{
+          background: 'var(--color-surface)',
+          borderBottom: '1px solid var(--color-border)',
+        }}
+      >
+        <span className="text-sm text-[var(--color-accent)]">Pair Session</span>
+        <span className="text-sm text-[var(--color-text-dim)]">
           {invite.tool} · Invited by {invite.inviterId.slice(0, 8)}
         </span>
       </div>

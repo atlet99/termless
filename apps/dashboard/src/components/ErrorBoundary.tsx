@@ -39,16 +39,20 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div className="flex h-screen items-center justify-center bg-zinc-950">
+        <div className="flex h-screen items-center justify-center bg-[var(--color-bg)]">
           <div className="max-w-md text-center">
-            <h1 className="text-2xl font-bold text-red-400">Something went wrong</h1>
-            <p className="mt-2 text-zinc-400">{this.state.error?.message}</p>
+            <h1 className="text-2xl font-bold text-[var(--color-red)]">Something went wrong</h1>
+            <p className="mt-2 text-[var(--color-text-dim)]">{this.state.error?.message}</p>
             <button
               type="button"
               onClick={() => {
                 this.setState({ hasError: false, error: null })
               }}
-              className="mt-4 rounded bg-purple-600 px-4 py-2 text-white hover:bg-purple-500"
+              className="mt-4 rounded px-4 py-2 text-sm font-medium transition-colors"
+              style={{
+                background: 'var(--color-accent)',
+                color: 'var(--color-text-inverse)',
+              }}
             >
               Try again
             </button>

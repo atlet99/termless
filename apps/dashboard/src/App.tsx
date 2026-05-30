@@ -64,18 +64,21 @@ export function App() {
 
   if (route.page === 'audit') {
     return (
-      <div className="h-screen bg-zinc-950">
-        <header className="border-b border-zinc-800 px-4 py-2 flex items-center gap-4">
+      <div className="h-screen bg-[var(--color-bg)]">
+        <header
+          className="px-4 py-2 flex items-center gap-4"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
           <button
             type="button"
             onClick={() => {
               window.location.hash = ''
             }}
-            className="text-sm text-zinc-400 hover:text-zinc-100"
+            className="text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
           >
             Back
           </button>
-          <h1 className="text-lg font-bold text-zinc-100">Termless</h1>
+          <h1 className="text-lg font-bold text-[var(--color-text)]">Termless</h1>
         </header>
         <AuditLog />
       </div>

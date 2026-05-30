@@ -14,6 +14,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 
 interface Workspace {
@@ -23,7 +24,14 @@ interface Workspace {
   createdAt: string
 }
 
+const inputStyle = {
+  background: 'var(--color-surface-2)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
 export function WorkspaceManager() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [cloneUrl, setCloneUrl] = useState('')
   const [cloneName, setCloneName] = useState('')
@@ -54,21 +62,30 @@ export function WorkspaceManager() {
 
   const deleteWorkspace = useMutation({
     mutationFn: (id: string) => api.post(`/api/v1/workspaces/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['workspaces'] }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['workspaces'] })
+    },
   })
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <h2 className="text-lg font-semibold text-white">Workspaces</h2>
+    <div>
+      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">
+        {t('workspaces.title')}
+      </h1>
 
-      <div className="flex gap-2">
+      {/* Create */}
+      <div
+        className="flex gap-3 mb-3 p-4 rounded-xl"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+      >
         <input
-          placeholder="New workspace name"
+          placeholder={t('workspaces.newName')}
           value={newName}
           onChange={(e) => {
             setNewName(e.target.value)
           }}
-          className="flex-1 rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+          style={inputStyle}
         />
         <button
           type="button"
@@ -76,28 +93,38 @@ export function WorkspaceManager() {
           onClick={() => {
             createWorkspace.mutate(newName.trim())
           }}
-          className="rounded bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-500 disabled:opacity-50"
+          className="rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          style={{
+            background: 'var(--color-accent)',
+            color: 'var(--color-text-inverse)',
+          }}
         >
-          Create
+          {t('workspaces.create')}
         </button>
       </div>
 
-      <div className="flex gap-2">
+      {/* Clone */}
+      <div
+        className="flex gap-3 mb-6 p-4 rounded-xl"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+      >
         <input
-          placeholder="Git URL"
+          placeholder={t('workspaces.gitUrl')}
           value={cloneUrl}
           onChange={(e) => {
             setCloneUrl(e.target.value)
           }}
-          className="flex-1 rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="flex-1 rounded-md px-3 py-2 text-sm outline-none font-mono"
+          style={inputStyle}
         />
         <input
-          placeholder="Name"
+          placeholder={t('workspaces.name')}
           value={cloneName}
           onChange={(e) => {
             setCloneName(e.target.value)
           }}
-          className="w-32 rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="w-32 rounded-md px-3 py-2 text-sm outline-none"
+          style={inputStyle}
         />
         <button
           type="button"
@@ -105,38 +132,46 @@ export function WorkspaceManager() {
           onClick={() => {
             cloneWorkspace.mutate({ url: cloneUrl.trim(), name: cloneName.trim() })
           }}
-          className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500 disabled:opacity-50"
+          className="rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+          style={{
+            background: 'var(--color-cyan)',
+            color: 'var(--color-text-inverse)',
+          }}
         >
-          Clone
+          {t('workspaces.clone')}
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <p className="text-[var(--color-text-dim)] text-sm">{t('common.loading')}</p>
       ) : (
         <div className="space-y-2">
           {workspaces?.map((ws) => (
             <div
               key={ws.id}
-              className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg"
+              className="flex items-center justify-between p-4 rounded-xl transition-colors hover:border-[var(--color-accent)]"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-border)',
+              }}
             >
               <div>
-                <div className="text-sm text-zinc-100">{ws.name}</div>
-                <div className="text-xs text-zinc-500 font-mono">{ws.path}</div>
+                <div className="text-sm text-[var(--color-text)]">{ws.name}</div>
+                <div className="text-xs text-[var(--color-text-dim)] font-mono mt-1">{ws.path}</div>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   deleteWorkspace.mutate(ws.id)
                 }}
-                className="text-xs text-zinc-500 hover:text-red-400"
+                className="text-xs border border-[var(--color-border)] rounded-full px-3 py-1 text-[var(--color-text-dim)] hover:border-[var(--color-red)] hover:text-[var(--color-red)] transition-colors"
               >
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           ))}
           {(!workspaces || workspaces.length === 0) && (
-            <p className="text-zinc-500 text-sm">No workspaces yet</p>
+            <p className="text-[var(--color-text-dim)] text-sm">{t('workspaces.empty')}</p>
           )}
         </div>
       )}

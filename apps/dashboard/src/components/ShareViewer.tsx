@@ -86,11 +86,20 @@ export function ShareViewer({ shareToken }: ShareViewerProps) {
   }, [shareToken])
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950">
-      <header className="border-b border-zinc-800 px-4 py-2 flex items-center justify-between">
+    <div className="h-screen flex flex-col bg-[var(--color-bg)]">
+      <header
+        className="px-4 py-2 flex items-center justify-between"
+        style={{ borderBottom: '1px solid var(--color-border)' }}
+      >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-zinc-300">Termless</span>
-          <span className="px-2 py-0.5 bg-yellow-600/20 text-yellow-400 text-xs rounded">
+          <span className="text-sm font-medium text-[var(--color-text)]">Termless</span>
+          <span
+            className="px-2 py-0.5 text-xs rounded"
+            style={{
+              background: 'var(--color-yellow-muted)',
+              color: 'var(--color-yellow)',
+            }}
+          >
             Read-Only
           </span>
         </div>
