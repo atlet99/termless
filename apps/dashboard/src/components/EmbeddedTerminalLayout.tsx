@@ -96,7 +96,7 @@ export function EmbeddedTerminalLayout({
           {activeSessionId ? (
             <TerminalView sessionId={activeSessionId} />
           ) : (
-            <div className="h-full flex items-center justify-center text-zinc-500">
+            <div className="h-full flex items-center justify-center text-[var(--color-text-dim)]">
               Select a session from the sidebar
             </div>
           )}
