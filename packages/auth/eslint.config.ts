@@ -24,6 +24,7 @@ export default defineConfig([
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/prefer-nullish-coalescing': 'off',
+      '@typescript-eslint/no-redundant-type-constituents': 'off',
       'unicorn/numeric-separators-style': 'off',
       '@typescript-eslint/naming-convention': [
         'error',

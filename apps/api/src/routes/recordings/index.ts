@@ -76,6 +76,16 @@ export async function registerRecordingRoutes(fastify: FastifyInstance) {
       }
 
       await fastify.prisma.recording.delete({ where: { id } })
+
+      // Delete file from disk
+      try {
+        const { unlink } = await import('node:fs/promises')
+        await unlink(recording.filePath)
+      } catch (err) {
+        // Log but don't fail — file may already be deleted
+        fastify.log.warn({ err, filePath: recording.filePath }, 'Failed to delete recording file')
+      }
+
       void fastify.audit(user.id, 'recording.delete', { recordingId: id }, request.ip)
 
       return { ok: true }

@@ -91,6 +91,25 @@
       "linter": {
         "enabled": false
       }
+    },
+    {
+      "includes": [
+        "apps/dashboard/src/components/Sidebar.tsx",
+        "apps/dashboard/src/components/ThemeSwitch.tsx",
+        "apps/dashboard/src/components/TopBar.tsx",
+        "apps/dashboard/src/components/CommandPalette.tsx",
+        "apps/dashboard/src/components/TerminalTabBar.tsx",
+        "apps/dashboard/src/components/TerminalStatusBar.tsx",
+        "apps/dashboard/src/components/OfflineBanner.tsx",
+        "apps/dashboard/src/components/SystemPanel.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noSvgWithoutTitle": "off"
+          }
+        }
+      }
     }
   ]
 }

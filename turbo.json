@@ -10,6 +10,12 @@
       "outputs": [],
       "cache": true
     },
+    "lint:fix": {
+      "dependsOn": [],
+      "inputs": ["src/**/*.{ts,tsx,js,jsx}", "eslint.config.ts", "packages/eslint-config/src/**"],
+      "outputs": [],
+      "cache": false
+    },
     "check": {
       "dependsOn": [],
       "inputs": ["src/**/*.{ts,tsx,js,jsx,json,css}", "biome.json"],

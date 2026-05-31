@@ -13,6 +13,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { CURSOR_STYLES, TERMINAL_FONTS, TERMINAL_THEMES } from '../lib/terminal-themes'
 
@@ -27,7 +28,14 @@ interface SettingsPanelProps {
   onClose: () => void
 }
 
+const inputStyle = {
+  background: 'var(--color-surface-2)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
 export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const updatePreferences = useMutation({
@@ -38,18 +46,33 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'var(--color-overlay)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-md rounded-xl p-6 shadow-2xl"
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-zinc-100">Settings</h2>
-          <button type="button" onClick={onClose} className="text-zinc-400 hover:text-zinc-100">
+          <h2 className="text-lg font-semibold text-[var(--color-text)]">
+            {t('dashboard.settings')}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
+          >
             &times;
           </button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label htmlFor="theme" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="theme" className="block text-sm text-[var(--color-text-dim)] mb-1">
               Theme
             </label>
             <select
@@ -58,7 +81,8 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
               onChange={(e) => {
                 updatePreferences.mutate({ terminalTheme: e.target.value })
               }}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100"
+              className="w-full px-3 py-2 rounded-lg text-sm"
+              style={inputStyle}
             >
               {Object.keys(TERMINAL_THEMES).map((themeName) => (
                 <option key={themeName} value={themeName}>
@@ -69,7 +93,7 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
           </div>
 
           <div>
-            <label htmlFor="font" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="font" className="block text-sm text-[var(--color-text-dim)] mb-1">
               Font
             </label>
             <select
@@ -78,7 +102,8 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
               onChange={(e) => {
                 updatePreferences.mutate({ terminalFont: e.target.value })
               }}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100"
+              className="w-full px-3 py-2 rounded-lg text-sm"
+              style={inputStyle}
             >
               {TERMINAL_FONTS.map((font) => (
                 <option key={font} value={font}>
@@ -89,7 +114,7 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
           </div>
 
           <div>
-            <label htmlFor="fontSize" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="fontSize" className="block text-sm text-[var(--color-text-dim)] mb-1">
               Font Size: {preferences.terminalSize}px
             </label>
             <input
@@ -106,7 +131,7 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
           </div>
 
           <div>
-            <label htmlFor="cursor" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="cursor" className="block text-sm text-[var(--color-text-dim)] mb-1">
               Cursor Style
             </label>
             <select
@@ -115,7 +140,8 @@ export function SettingsPanel({ preferences, onClose }: SettingsPanelProps) {
               onChange={(e) => {
                 updatePreferences.mutate({ cursorStyle: e.target.value })
               }}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100"
+              className="w-full px-3 py-2 rounded-lg text-sm"
+              style={inputStyle}
             >
               {CURSOR_STYLES.map((style) => (
                 <option key={style} value={style}>

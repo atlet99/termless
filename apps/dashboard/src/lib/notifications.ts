@@ -24,43 +24,56 @@ export function useNotifications(token: string | null) {
   const [events, setEvents] = useState<NotificationEvent[]>([])
   const [connected, setConnected] = useState(false)
   const sourceRef = useRef<EventSource | null>(null)
+  const retryCountRef = useRef(0)
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!token) return
 
-    const url = `/api/v1/events`
-    const source = new EventSource(url, {
-      withCredentials: true,
-    })
+    function connect() {
+      const url = `/api/v1/events`
+      const source = new EventSource(url, {
+        withCredentials: true,
+      })
 
-    source.onopen = () => {
-      setConnected(true)
-    }
-
-    source.onmessage = (event) => {
-      try {
-        const parsed = JSON.parse(event.data) as NotificationEvent
-        setEvents((prev) => [...prev.slice(-99), parsed])
-      } catch {
-        // ignore parse errors
+      source.onopen = () => {
+        setConnected(true)
+        retryCountRef.current = 0
       }
-    }
 
-    source.onerror = () => {
-      setConnected(false)
-      source.close()
-      setTimeout(() => {
-        if (token) {
-          // reconnect handled by useEffect re-running
+      source.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data) as NotificationEvent
+          setEvents((prev) => [...prev.slice(-99), parsed])
+        } catch {
+          // ignore parse errors
         }
-      }, 5000)
+      }
+
+      source.onerror = () => {
+        setConnected(false)
+        source.close()
+        // Reconnect with exponential backoff (max 30s)
+        const delay = Math.min(1000 * 2 ** retryCountRef.current, 30_000)
+        retryCountRef.current++
+        retryTimeoutRef.current = setTimeout(() => {
+          connect()
+        }, delay)
+      }
+
+      sourceRef.current = source
     }
 
-    sourceRef.current = source
+    connect()
 
     return () => {
-      source.close()
-      sourceRef.current = null
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+      }
+      if (sourceRef.current) {
+        sourceRef.current.close()
+        sourceRef.current = null
+      }
     }
   }, [token])
 

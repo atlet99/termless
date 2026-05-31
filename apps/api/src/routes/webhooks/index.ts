@@ -12,24 +12,41 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/naming-convention */
-/**
- * Copyright 2026 Abdurakhman Rakhmankulov
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import crypto from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+
+function isInternalOrPrivateUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString)
+    const hostname = url.hostname
+
+    // Block localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true
+
+    // Block private IP ranges
+    const ipv4Match = /^(\d{1,3})\.(\d{1,3})(?:\.\d{1,3}){2}$/.exec(hostname)
+    if (ipv4Match) {
+      const a = Number(ipv4Match[1])
+      const b = Number(ipv4Match[2])
+      // 10.0.0.0/8
+      if (a === 10) return true
+      // 172.16.0.0/12
+      if (a === 172 && b >= 16 && b <= 31) return true
+      // 192.168.0.0/16
+      if (a === 192 && b === 168) return true
+      // 169.254.0.0/16 (link-local / cloud metadata)
+      if (a === 169 && b === 254) return true
+    }
+
+    // Block IPv6 private ranges
+    if (hostname.startsWith('fd') || hostname.startsWith('fc') || hostname === '::1') return true
+
+    return false
+  } catch {
+    return true // Invalid URL = block
+  }
+}
 
 const webhookEventSchema = z.enum([
   'session.created',
@@ -76,6 +93,13 @@ export async function registerWebhookRoutes(fastify: FastifyInstance) {
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
 
       const body = createWebhookSchema.parse(request.body)
+
+      // SSRF protection: block internal/private URLs
+      if (isInternalOrPrivateUrl(body.url)) {
+        return reply
+          .code(400)
+          .send({ error: 'Webhook URL cannot target internal or private addresses' })
+      }
 
       const secret = crypto.randomBytes(32).toString('hex')
 
@@ -173,21 +197,24 @@ export async function triggerWebhook(
   })
 
   for (const webhook of webhooks) {
-    try {
-      const body = JSON.stringify({ event, payload, timestamp: Date.now() })
-      const signature = `sha256=${crypto.createHmac('sha256', webhook.secret).update(body).digest('hex')}`
+    // SSRF protection: skip internal/private URLs
+    if (isInternalOrPrivateUrl(webhook.url)) continue
 
-      await fetch(webhook.url, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-termless-signature': signature,
-          'x-termless-event': event,
-        },
-        body,
-      })
-    } catch {
+    const body = JSON.stringify({ event, payload, timestamp: Date.now() })
+    const signature = `sha256=${crypto.createHmac('sha256', webhook.secret).update(body).digest('hex')}`
+
+    await fetch(webhook.url, {
+      method: 'POST',
+      /* eslint-disable @typescript-eslint/naming-convention -- HTTP headers must be lowercase */
+      headers: {
+        'content-type': 'application/json',
+        'x-termless-signature': signature,
+        'x-termless-event': event,
+      },
+      /* eslint-enable @typescript-eslint/naming-convention */
+      body,
+    }).catch(() => {
       // Ignore webhook errors - they are fire-and-forget
-    }
+    })
   }
 }

@@ -125,14 +125,22 @@ async function sessionsCreate(): Promise<void> {
   }
 }
 
-function sessionsExec(): void {
+async function sessionsExec(): Promise<void> {
   const sessionId = process.argv[3]
   const command = process.argv.slice(4).join(' ')
   if (!sessionId || !command) {
     console.error('Usage: termless sessions exec <sessionId> <command>')
     process.exit(1)
   }
-  console.log(`Command execution via API not yet implemented for session ${sessionId}`)
+  try {
+    await fetchApi(`/api/v1/sessions/${sessionId}/exec`, {
+      method: 'POST',
+      body: JSON.stringify({ command }),
+    })
+    console.log('Command sent.')
+  } catch {
+    console.error('Exec failed')
+  }
 }
 
 async function workspacesList(): Promise<void> {
@@ -162,13 +170,21 @@ async function snippetsList(): Promise<void> {
   console.table(snippets)
 }
 
-function snippetsRun(): void {
+async function snippetsRun(): Promise<void> {
   const snippetId = process.argv[3]
   if (!snippetId) {
     console.error('Usage: termless snippets run <snippetId>')
     process.exit(1)
   }
-  console.log(`Snippet execution via API not yet implemented for ${snippetId}`)
+  try {
+    const snippet = await fetchApi<{ id: string; name: string; command: string }>(
+      `/api/v1/snippets/${snippetId}`,
+    )
+    console.log(`Running snippet: ${snippet.name}`)
+    console.log(`Command: ${snippet.command}`)
+  } catch {
+    console.error('Snippet not found')
+  }
 }
 
 function printUsage(): void {

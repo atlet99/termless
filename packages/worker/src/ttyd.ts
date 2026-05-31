@@ -68,7 +68,7 @@ export function startTtyd(options: TtydOptions): ChildProcess {
     `theme=${JSON.stringify(TOKYO_NIGHT_THEME)}`,
     'bash',
     '-c',
-    `sudo -u termless-user-${String(userId)} tmux new-session -A -s ${tmuxSession} -c ${workspacePath}`,
+    `sudo -u termless-user-${String(userId)} tmux new-session -A -s ${JSON.stringify(tmuxSession)} -c ${JSON.stringify(workspacePath)}`,
   ]
 
   const spawnOptions: SpawnOptions = {
@@ -99,18 +99,39 @@ export function stopTtyd(port: number): void {
   if (child !== undefined) {
     logger.info({ port }, 'Stopping ttyd')
     child.kill('SIGTERM')
-    activeProcesses.delete(port)
-    workerProcessesTotal.dec({ tool: 'ttyd' })
+
+    // SIGKILL fallback after 5 seconds
+    const killTimeout = setTimeout(() => {
+      if (!child.killed) {
+        logger.warn({ port }, 'ttyd did not exit, sending SIGKILL')
+        child.kill('SIGKILL')
+      }
+    }, 5000)
+
+    child.on('exit', () => {
+      clearTimeout(killTimeout)
+    })
+
+    // Note: activeProcesses.delete and metrics dec happen in the 'exit' handler
   }
 }
 
 export function stopAllTtyd(): void {
-  for (const [port, child] of activeProcesses) {
-    logger.info({ port }, 'Stopping ttyd')
+  for (const [, child] of activeProcesses) {
     child.kill('SIGTERM')
+
+    // SIGKILL fallback after 5 seconds
+    const killTimeout = setTimeout(() => {
+      if (!child.killed) {
+        child.kill('SIGKILL')
+      }
+    }, 5000)
+
+    child.on('exit', () => {
+      clearTimeout(killTimeout)
+    })
   }
-  activeProcesses.clear()
-  workerProcessesTotal.set({ tool: 'ttyd' }, 0)
+  // Note: activeProcesses.clear and metrics reset happen in the 'exit' handlers
 }
 
 export function getActivePorts(): number[] {

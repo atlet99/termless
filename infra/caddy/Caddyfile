@@ -1,6 +1,32 @@
-# Replace hub.example.com with your actual domain
+# infra/caddy/Caddyfile
+# Termless — Caddy 2.9 reverse proxy
+
 hub.example.com {
-    handle /api/* {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options    "nosniff"
+        X-Frame-Options           "DENY"
+        Referrer-Policy           "strict-origin-when-cross-origin"
+        Permissions-Policy        "clipboard-read=(), clipboard-write=(), camera=(), microphone=()"
+        Content-Security-Policy   "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss:; font-src 'self' data:;"
+        -Server
+    }
+
+    # Dashboard
+    handle /view/* {
+        reverse_proxy dashboard:80
+    }
+
+    handle /invite/* {
+        reverse_proxy dashboard:80
+    }
+
+    handle /admin/* {
+        reverse_proxy dashboard:80
+    }
+
+    # API + WebSocket
+    handle {
         reverse_proxy api:3000 {
             transport http {
                 read_timeout  3600s
@@ -10,27 +36,16 @@ hub.example.com {
             header_up X-Forwarded-Proto https
         }
     }
+}
 
-    handle /ws/* {
-        reverse_proxy api:3000
-    }
-
-    handle {
-        reverse_proxy dashboard:3001
-    }
-
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Content-Type-Options    "nosniff"
-        X-Frame-Options           "DENY"
-        Referrer-Policy           "strict-origin-when-cross-origin"
-        Permissions-Policy        "clipboard-read=(), clipboard-write=(), camera=(), microphone=()"
-        Content-Security-Policy   "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' wss://hub.example.com; font-src 'self' data:;"
-        -Server
-    }
-
-    log {
-        output stdout
-        format console
+# Development — localhost
+:80 {
+    reverse_proxy api:3000 {
+        transport http {
+            read_timeout  3600s
+            write_timeout 3600s
+        }
+        header_up X-Real-IP        {remote_host}
+        header_up X-Forwarded-Proto http
     }
 }

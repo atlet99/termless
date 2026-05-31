@@ -19,6 +19,11 @@ export const createWorkspaceSchema = z.object({
   path: z.string().min(1),
 })
 
+export const cloneWorkspaceSchema = z.object({
+  url: z.url().or(z.string().regex(/^git@\S+$/)),
+  name: z.string().min(1).max(100),
+})
+
 export const workspaceSchema = z.object({
   id: z.string(),
   userId: z.string(),

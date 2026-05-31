@@ -15,6 +15,8 @@
 import { getRedisClient, getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import { startRecording } from '@termless/worker'
+import type { RecordingSession } from '@termless/worker'
+import { eventBus } from '../lib/event-bus.js'
 import { triggerWebhook } from '../routes/webhooks/index.js'
 import type { FastifyInstance } from 'fastify'
 import WebSocket from 'ws'
@@ -132,7 +134,7 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       }
 
       const shouldRecord = request.query.record === 'true' && isOwner
-      let recording: ReturnType<typeof startRecording> | null = null
+      let recording: RecordingSession | null = null
 
       if (shouldRecord) {
         recording = startRecording(user.id, sessionId, 80, 24)
@@ -155,16 +157,23 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
         }
       })
 
+      let lastSeenAtUpdate = 0
       socket.on('message', (data: unknown) => {
         if (typeof data === 'string') {
           ttydSocket.send(data)
         }
-        // Update last seen timestamp for idle timeout
-        if (session && SESSION_IDLE_TIMEOUT_MS > 0) {
-          fastify.prisma.session.update({
-            where: { id: session.id },
-            data: { lastSeenAt: new Date() },
-          })
+        // Throttle lastSeenAt updates to once per 30 seconds
+        const now = Date.now()
+        if (session && SESSION_IDLE_TIMEOUT_MS > 0 && now - lastSeenAtUpdate > 30_000) {
+          lastSeenAtUpdate = now
+          fastify.prisma.session
+            .update({
+              where: { id: session.id },
+              data: { lastSeenAt: new Date() },
+            })
+            .catch(() => {
+              // Ignore update errors
+            })
         }
       })
 
@@ -195,11 +204,20 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
             { sessionId, duration, sizeBytes },
             user.id,
           )
+          eventBus.publish(user.id, {
+            type: 'recording.completed',
+            timestamp: new Date().toISOString(),
+            data: { sessionId, duration, sizeBytes },
+          })
         }
       })
 
       ttydSocket.on('error', () => {
         socket.close(5000, 'ttyd connection error')
+      })
+
+      socket.on('error', () => {
+        ttydSocket.close()
       })
     },
   )

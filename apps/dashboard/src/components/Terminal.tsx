@@ -176,7 +176,13 @@ export function TerminalView({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
       {showSearch && (
-        <div className="absolute top-2 right-2 flex items-center gap-2 rounded-lg bg-zinc-800 border border-zinc-700 px-3 py-2 shadow-lg">
+        <div
+          className="absolute top-2 right-2 flex items-center gap-2 rounded-lg px-3 py-2 shadow-lg"
+          style={{
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border)',
+          }}
+        >
           <input
             type="text"
             value={searchQuery}
@@ -198,7 +204,8 @@ export function TerminalView({
               }
             }}
             placeholder="Search..."
-            className="w-48 bg-transparent text-sm text-zinc-100 outline-none placeholder:text-zinc-500"
+            className="w-48 bg-transparent text-sm outline-none"
+            style={{ color: 'var(--color-text)' }}
             ref={(input) => {
               if (input) input.focus()
             }}
@@ -208,7 +215,7 @@ export function TerminalView({
             onClick={() => {
               searchAddonRef.current?.findPrevious(searchQuery)
             }}
-            className="text-zinc-400 hover:text-zinc-100"
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
           >
             &uarr;
           </button>
@@ -217,7 +224,7 @@ export function TerminalView({
             onClick={() => {
               searchAddonRef.current?.findNext(searchQuery)
             }}
-            className="text-zinc-400 hover:text-zinc-100"
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
           >
             &darr;
           </button>
@@ -227,17 +234,28 @@ export function TerminalView({
               setShowSearch(false)
               setSearchQuery('')
             }}
-            className="text-zinc-400 hover:text-zinc-100"
+            className="text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
           >
             &times;
           </button>
         </div>
       )}
       {!isConnected && reconnectAttempt > 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm">
+        <div
+          className="absolute inset-0 flex items-center justify-center backdrop-blur-sm"
+          style={{ background: 'var(--color-overlay)' }}
+        >
           <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-purple-500" />
-            <p className="text-sm text-zinc-400">Reconnecting... (attempt {reconnectAttempt})</p>
+            <div
+              className="h-8 w-8 animate-spin rounded-full border-2"
+              style={{
+                borderColor: 'var(--color-text-dim)',
+                borderTopColor: 'var(--color-accent)',
+              }}
+            />
+            <p className="text-sm text-[var(--color-text-dim)]">
+              Reconnecting... (attempt {reconnectAttempt})
+            </p>
           </div>
         </div>
       )}

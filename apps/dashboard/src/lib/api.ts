@@ -14,6 +14,66 @@
 
 const API_BASE = ''
 
+export interface User {
+  id: string
+  email: string
+  displayName: string | null
+  role: string
+  createdAt: string
+}
+
+export interface Session {
+  id: string
+  userId: string
+  name: string | null
+  notes: string | null
+  tool: string
+  tmuxSession: string
+  ttydPort: number | null
+  lastSeenAt: string | null
+  createdAt: string
+}
+
+export interface Workspace {
+  id: string
+  userId: string
+  name: string
+  path: string
+  createdAt: string
+}
+
+export interface Snippet {
+  id: string
+  userId: string
+  name: string
+  command: string
+  tags: string[]
+  createdAt: string
+}
+
+export interface Preferences {
+  terminalTheme: string
+  terminalFont: string
+  terminalSize: number
+  cursorStyle: string
+  layoutMode: string
+}
+
+export interface LoginResponse {
+  token: string
+  user: User
+}
+
+export interface CreateSessionResponse {
+  id: string
+  wsUrl: string
+}
+
+export interface ShareResponse {
+  shareToken: string
+  url: string
+}
+
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('termless_token')
   const res = await fetch(`${API_BASE}${path}`, {
@@ -40,64 +100,66 @@ export const api = {
       ...(body ? { body: JSON.stringify(body) } : {}),
     }),
 
+  put: <T>(path: string, body?: unknown) =>
+    fetchApi<T>(path, {
+      method: 'PUT',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }),
+
+  patch: <T>(path: string, body?: unknown) =>
+    fetchApi<T>(path, {
+      method: 'PATCH',
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }),
+
+  delete: <T>(path: string) => fetchApi<T>(path, { method: 'DELETE' }),
+
   login: (email: string, password: string) =>
-    fetchApi<{ token: string; user: any }>('/auth/login', {
+    fetchApi<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     }),
 
-  getMe: () => fetchApi<{ user: any }>('/auth/me'),
+  getMe: () => fetchApi<{ user: User }>('/auth/me'),
 
-  getSessions: () => fetchApi<any[]>('/api/v1/sessions'),
+  getSessions: () => fetchApi<Session[]>('/api/v1/sessions'),
 
-  createSession: (tool: string) =>
-    fetchApi<any>('/api/v1/sessions', {
+  createSession: (tool: string, templateId?: string) =>
+    fetchApi<CreateSessionResponse>('/api/v1/sessions', {
       method: 'POST',
-      body: JSON.stringify({ tool }),
+      body: JSON.stringify({ tool, templateId }),
     }),
 
   deleteSession: (id: string) => fetchApi<void>(`/api/v1/sessions/${id}`, { method: 'DELETE' }),
 
-  getWorkspaces: () => fetchApi<any[]>('/api/v1/workspaces'),
+  getWorkspaces: () => fetchApi<Workspace[]>('/api/v1/workspaces'),
 
-  createWorkspace: (name: string, path: string) =>
-    fetchApi<any>('/api/v1/workspaces', {
+  createWorkspace: (name: string) =>
+    fetchApi<Workspace>('/api/v1/workspaces', {
       method: 'POST',
-      body: JSON.stringify({ name, path }),
+      body: JSON.stringify({ name }),
     }),
 
-  getPreferences: () =>
-    fetchApi<{
-      terminalTheme: string
-      terminalFont: string
-      terminalSize: number
-      cursorStyle: string
-      layoutMode: string
-    }>('/api/v1/me/preferences'),
+  getPreferences: () => fetchApi<Preferences>('/api/v1/me/preferences'),
 
-  updatePreferences: (prefs: {
-    terminalTheme?: string
-    terminalFont?: string
-    terminalSize?: number
-    cursorStyle?: string
-    layoutMode?: string
-  }) =>
-    fetchApi<any>('/api/v1/me/preferences', {
+  updatePreferences: (prefs: Partial<Preferences>) =>
+    fetchApi<Preferences>('/api/v1/me/preferences', {
       method: 'PATCH',
       body: JSON.stringify(prefs),
     }),
 
-  getSnippets: () => fetchApi<any[]>('/api/v1/snippets'),
+  getSnippets: () => fetchApi<Snippet[]>('/api/v1/snippets'),
 
   createSnippet: (data: { name: string; command: string; tags?: string[] }) =>
-    fetchApi<any>('/api/v1/snippets', {
+    fetchApi<Snippet>('/api/v1/snippets', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
   deleteSnippet: (id: string) => fetchApi<void>(`/api/v1/snippets/${id}`, { method: 'DELETE' }),
 
   createShare: (sessionId: string, expiresIn: string) =>
-    fetchApi<{ shareToken: string; url: string }>(`/api/v1/sessions/${sessionId}/share`, {
+    fetchApi<ShareResponse>(`/api/v1/sessions/${sessionId}/share`, {
       method: 'POST',
       body: JSON.stringify({ expiresIn }),
     }),

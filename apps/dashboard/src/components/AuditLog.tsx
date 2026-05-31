@@ -14,6 +14,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 
 interface AuditEntry {
@@ -30,7 +31,14 @@ interface AuditResponse {
   pagination: { page: number; limit: number; total: number; pages: number }
 }
 
+const inputStyle = {
+  background: 'var(--color-surface-2)',
+  border: '1px solid var(--color-border)',
+  color: 'var(--color-text)',
+}
+
 export function AuditLog() {
+  const { t } = useTranslation()
   const [page, setPage] = useState(1)
   const [userId, setUserId] = useState('')
   const [action, setAction] = useState('')
@@ -49,6 +57,13 @@ export function AuditLog() {
     },
   })
 
+  const escapeCsv = (value: string): string => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replaceAll('"', '""')}"`
+    }
+    return value
+  }
+
   const handleExport = async () => {
     const params = new URLSearchParams({ page: '1', limit: '10000' })
     if (userId) params.set('userId', userId)
@@ -56,14 +71,12 @@ export function AuditLog() {
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     const result = await api.get<AuditResponse>(`/api/v1/admin/audit-logs?${params.toString()}`)
-    const rows = result.data.map((e) => [
-      e.createdAt,
-      e.userId,
-      e.action,
-      JSON.stringify(e.details ?? {}),
-      e.ip ?? '',
-    ])
-    const csv = ['timestamp,userId,action,details,ip', ...rows.map((r) => r.join(','))].join('\n')
+    const rows = result.data.map((e) =>
+      [e.createdAt, e.userId, e.action, JSON.stringify(e.details ?? {}), e.ip ?? '']
+        .map(escapeCsv)
+        .join(','),
+    )
+    const csv = ['timestamp,userId,action,details,ip', ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -74,19 +87,27 @@ export function AuditLog() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Audit Log</h2>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-lg font-semibold text-[var(--color-text)]">{t('admin.auditLog')}</h1>
         <button
           type="button"
           onClick={handleExport}
-          className="rounded bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-500"
+          className="rounded-md px-4 py-2 text-sm font-medium transition-colors"
+          style={{
+            background: 'var(--color-accent)',
+            color: 'var(--color-text-inverse)',
+          }}
         >
           Export CSV
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {/* Filters */}
+      <div
+        className="flex flex-wrap gap-3 mb-6 p-4 rounded-xl"
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+      >
         <input
           placeholder="User ID"
           value={userId}
@@ -94,16 +115,18 @@ export function AuditLog() {
             setUserId(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="rounded-md px-3 py-2 text-sm outline-none font-mono"
+          style={inputStyle}
         />
         <input
-          placeholder="Action (e.g. auth.login)"
+          placeholder={t('admin.actionPlaceholder')}
           value={action}
           onChange={(e) => {
             setAction(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="rounded-md px-3 py-2 text-sm outline-none"
+          style={inputStyle}
         />
         <input
           type="datetime-local"
@@ -112,7 +135,8 @@ export function AuditLog() {
             setFrom(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="rounded-md px-3 py-2 text-sm outline-none"
+          style={inputStyle}
         />
         <input
           type="datetime-local"
@@ -121,40 +145,57 @@ export function AuditLog() {
             setTo(e.target.value)
             setPage(1)
           }}
-          className="rounded border border-gray-600 bg-gray-800 px-2 py-1 text-sm text-white"
+          className="rounded-md px-3 py-2 text-sm outline-none"
+          style={inputStyle}
         />
       </div>
 
       {isLoading ? (
-        <div className="text-gray-400">Loading...</div>
+        <p className="text-[var(--color-text-dim)]">{t('common.loading')}</p>
       ) : (
-        <div className="overflow-auto">
+        <div
+          className="overflow-auto rounded-xl"
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+        >
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-gray-700 text-gray-400">
-                <th className="p-2">Time</th>
-                <th className="p-2">User</th>
-                <th className="p-2">Action</th>
-                <th className="p-2">Details</th>
-                <th className="p-2">IP</th>
+              <tr
+                className="text-[var(--color-text-dim)]"
+                style={{ borderBottom: '1px solid var(--color-border)' }}
+              >
+                <th className="p-3">Time</th>
+                <th className="p-3">User</th>
+                <th className="p-3">Action</th>
+                <th className="p-3">Details</th>
+                <th className="p-3">IP</th>
               </tr>
             </thead>
             <tbody>
               {data?.data.map((entry) => (
-                <tr key={entry.id} className="border-b border-gray-800 text-gray-200">
-                  <td className="p-2 whitespace-nowrap">
+                <tr
+                  key={entry.id}
+                  className="text-[var(--color-text)]"
+                  style={{ borderBottom: '1px solid var(--color-border-muted)' }}
+                >
+                  <td className="p-3 whitespace-nowrap">
                     {new Date(entry.createdAt).toLocaleString()}
                   </td>
-                  <td className="p-2 font-mono text-xs">{entry.userId}</td>
-                  <td className="p-2">
-                    <span className="rounded bg-gray-700 px-1.5 py-0.5 text-xs">
+                  <td className="p-3 font-mono text-xs">{entry.userId}</td>
+                  <td className="p-3">
+                    <span
+                      className="rounded px-1.5 py-0.5 text-xs"
+                      style={{
+                        background: 'var(--color-surface-3)',
+                        color: 'var(--color-accent)',
+                      }}
+                    >
                       {entry.action}
                     </span>
                   </td>
-                  <td className="p-2 font-mono text-xs text-gray-400">
+                  <td className="p-3 font-mono text-xs text-[var(--color-text-dim)]">
                     {entry.details ? JSON.stringify(entry.details) : '—'}
                   </td>
-                  <td className="p-2 text-xs text-gray-400">{entry.ip ?? '—'}</td>
+                  <td className="p-3 text-xs text-[var(--color-text-dim)]">{entry.ip ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,18 +204,18 @@ export function AuditLog() {
       )}
 
       {data && data.pagination.pages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-3 mt-4">
           <button
             type="button"
             disabled={page <= 1}
             onClick={() => {
               setPage((p) => p - 1)
             }}
-            className="rounded bg-gray-700 px-2 py-1 text-sm text-white disabled:opacity-50"
+            className="rounded-md px-3 py-1.5 text-sm border border-[var(--color-border)] text-[var(--color-text-dim)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors disabled:opacity-50"
           >
             Prev
           </button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-[var(--color-text-dim)]">
             {page} / {data.pagination.pages}
           </span>
           <button
@@ -183,7 +224,7 @@ export function AuditLog() {
             onClick={() => {
               setPage((p) => p + 1)
             }}
-            className="rounded bg-gray-700 px-2 py-1 text-sm text-white disabled:opacity-50"
+            className="rounded-md px-3 py-1.5 text-sm border border-[var(--color-border)] text-[var(--color-text-dim)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors disabled:opacity-50"
           >
             Next
           </button>

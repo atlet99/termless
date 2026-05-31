@@ -1,35 +1,36 @@
+# docker-compose.dev.yml — Development overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
 services:
   api:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
-      target: deps
-    command: ["pnpm", "turbo", "run", "dev", "--filter=@termless/api"]
-    volumes:
-      - .:/app
-      - workspace:/workspace
-      - /etc/sudoers.d:/etc/sudoers.d
+    env_file: .env
     environment:
       - NODE_ENV=development
-    env_file: .env
+    volumes:
+      - ./apps/api/src:/app/apps/api/src:ro
+      - ./packages:/app/packages:ro
+    ports:
+      - "3000:3000"
 
   dashboard:
     build:
       context: .
       dockerfile: infra/docker/dashboard.Dockerfile
-      target: deps
-    command: ["pnpm", "turbo", "run", "dev", "--filter=@termless/dashboard"]
-    volumes:
-      - .:/app
     ports:
-      - "5173:5173"
-    environment:
-      - NODE_ENV=development
+      - "5173:80"
 
   caddy:
-    image: caddy:2.9-alpine
-    restart: unless-stopped
-    ports: ["80:80"]
-    volumes:
-      - ./infra/caddy/Caddyfile.dev:/etc/caddy/Caddyfile
-    networks: [termless]
+    ports:
+      - "80:80"
+      - "443:443"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"

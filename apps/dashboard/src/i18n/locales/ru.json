@@ -15,15 +15,120 @@
     "connect": "Подключиться",
     "delete": "Удалить",
     "back": "← Назад",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "settings": "Настройки",
+    "viewAuditLog": "Журнал аудита"
   },
   "session": {
     "newOpencode": "+ Opencode",
     "newClaude": "+ Claude",
     "newBash": "+ Bash",
-    "connected": "Подключено к терминалу Termless"
+    "connected": "Подключено к терминалу Termless",
+    "name": "Название сессии",
+    "notes": "Заметки (до 200 символов)"
+  },
+  "sidebar": {
+    "navigation": "Навигация",
+    "terminal": "Терминал",
+    "sessions": "Сессии",
+    "workspaces": "Пространства",
+    "templates": "Шаблоны",
+    "recordings": "Записи",
+    "envVars": "Переменные",
+    "snippets": "Сниппеты",
+    "logs": "Логи",
+    "processes": "Процессы",
+    "admin": "Админ",
+    "settings": "Настройки",
+    "newSession": "Новая сессия",
+    "quickLaunch": "Быстрый запуск"
+  },
+  "workspaces": {
+    "title": "Рабочие пространства",
+    "create": "Создать",
+    "clone": "Клонировать",
+    "delete": "Удалить",
+    "newName": "Название пространства",
+    "pathPlaceholder": "напр. /workspace/my-project",
+    "gitUrl": "Git URL",
+    "name": "Название",
+    "empty": "Нет рабочих пространств"
+  },
+  "recordings": {
+    "title": "Записи",
+    "download": "Скачать",
+    "delete": "Удалить",
+    "empty": "Нет записей"
+  },
+  "envVars": {
+    "title": "Переменные окружения",
+    "name": "Имя (напр. ANTHROPIC_API_KEY)",
+    "value": "Значение",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "empty": "Переменные окружения не настроены",
+    "encrypted": "Значения зашифрованы AES-256-GCM. Показаны только замаскированные значения."
+  },
+  "snippets": {
+    "title": "Сниппеты",
+    "name": "Название (напр. Перезапуск API)",
+    "command": "Команда (напр. docker compose restart api)",
+    "tags": "Теги (через запятую, напр. docker, dev)",
+    "add": "Добавить сниппет",
+    "delete": "Удалить",
+    "empty": "Нет сниппетов",
+    "hint": "Используйте Ctrl+Shift+P в терминале для быстрой вставки"
+  },
+  "audit": {
+    "title": "Журнал аудита",
+    "exportCsv": "Экспорт CSV",
+    "userId": "ID пользователя",
+    "action": "Действие (напр. auth.login)",
+    "time": "Время",
+    "user": "Пользователь",
+    "details": "Детали",
+    "ip": "IP",
+    "prev": "Назад",
+    "next": "Вперёд"
+  },
+  "admin": {
+    "title": "Управление пользователями",
+    "auditLog": "Журнал аудита",
+    "actionPlaceholder": "Действие (напр. auth.login)"
+  },
+  "invite": {
+    "pairSession": "Парная сессия",
+    "invitedBy": "Приглашение от",
+    "invalid": "Недействительное или просроченное приглашение",
+    "loading": "Загрузка приглашения..."
+  },
+  "share": {
+    "readOnly": "Только чтение"
   },
   "common": {
-    "error": "Ошибка"
+    "error": "Ошибка",
+    "loading": "Загрузка...",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "edit": "Изменить",
+    "delete": "Удалить"
+  },
+  "templates": {
+    "new": "Новый шаблон",
+    "edit": "Редактировать шаблон",
+    "name": "Название шаблона",
+    "namePlaceholder": "напр. api-dev",
+    "tool": "Инструмент",
+    "workingDir": "Рабочая директория",
+    "workingDirPlaceholder": "напр. /workspace/project/apps/api",
+    "envVars": "Переменные окружения (KEY=VALUE, через запятую)",
+    "envVarsPlaceholder": "напр. NODE_ENV=development, DEBUG=true",
+    "create": "Создать",
+    "save": "Сохранить",
+    "empty": "Нет шаблонов"
+  },
+  "toast": {
+    "sessionCreated": "Сессия создана",
+    "sessionDeleted": "Сессия удалена"
   }
 }

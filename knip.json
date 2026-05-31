@@ -1,14 +1,27 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "ignoreDependencies": ["@types/pg"],
+  "entry": ["apps/*/src/index.ts", "apps/*/src/main.tsx", "packages/*/src/index.ts"],
+  "project": ["apps/*/src/**/*.ts", "apps/*/src/**/*.tsx", "packages/*/src/**/*.ts"],
+  "ignore": [
+    "**/dist/**",
+    "**/coverage/**",
+    "**/*.generated.ts",
+    "**/*.d.ts",
+    "prisma/migrations/**"
+  ],
+  "ignoreDependencies": ["@types/node", "typescript"],
   "workspaces": {
     "apps/api": {
-      "entry": ["src/index.ts"],
+      "entry": ["src/index.ts", "src/instrumentation.ts"],
       "project": ["src/**/*.ts"]
     },
     "apps/dashboard": {
       "entry": ["src/main.tsx"],
-      "project": ["src/**/*.{ts,tsx}"]
+      "project": ["src/**/*.ts", "src/**/*.tsx"]
+    },
+    "apps/cli": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts"]
     },
     "packages/shared": {
       "entry": ["src/index.ts"],

@@ -18,15 +18,35 @@ import { createClient } from 'redis'
 
 let redisClient: RedisClientType | null = null
 
+/**
+ * Get or create a Redis client connection.
+ * Reuses existing connection if available.
+ * Reconnects automatically on error.
+ *
+ * @param redisUrl - Redis connection URL
+ * @returns Connected Redis client
+ */
 export async function getRedisClient(redisUrl: string): Promise<RedisClientType> {
   if (!redisClient) {
     redisClient = createClient({ url: redisUrl })
-    redisClient.on('error', (err) => console.error('Redis error:', err))
+    redisClient.on('error', (err) => {
+      console.error('Redis error:', err)
+      // Reset client so next call creates a new connection
+      redisClient = null
+    })
     await redisClient.connect()
   }
   return redisClient
 }
 
+/**
+ * Create a new authenticated session in Redis.
+ *
+ * @param redisUrl - Redis connection URL
+ * @param user - Authenticated user data to store
+ * @param ttlSeconds - Session time-to-live in seconds
+ * @returns Session token string
+ */
 export async function createSession(
   redisUrl: string,
   user: AuthenticatedUser,
@@ -39,6 +59,15 @@ export async function createSession(
   return token
 }
 
+/**
+ * Retrieve an authenticated session from Redis.
+ * Optionally extends the session TTL on access.
+ *
+ * @param redisUrl - Redis connection URL
+ * @param token - Session token to look up
+ * @param ttlSeconds - Optional TTL to extend session on access
+ * @returns Authenticated user data or null if session expired/missing
+ */
 export async function getSession(
   redisUrl: string,
   token: string,
@@ -56,6 +85,12 @@ export async function getSession(
   return JSON.parse(data) as AuthenticatedUser
 }
 
+/**
+ * Destroy an authenticated session in Redis.
+ *
+ * @param redisUrl - Redis connection URL
+ * @param token - Session token to destroy
+ */
 export async function destroySession(redisUrl: string, token: string): Promise<void> {
   const client = await getRedisClient(redisUrl)
   await client.del(`termless:session:${token}`)

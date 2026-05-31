@@ -13,7 +13,9 @@
  */
 
 import { useEffect, useState } from 'react'
+import { AppToaster } from './components/AppToaster'
 import { AuditLog } from './components/AuditLog'
+import { InviteAccept } from './components/InviteAccept'
 import { ShareViewer } from './components/ShareViewer'
 import { DashboardPage } from './routes/DashboardPage'
 import { LoginPage } from './routes/LoginPage'
@@ -22,6 +24,7 @@ import { useAuthStore } from './stores/auth'
 function getRoute(): { page: string; param?: string } {
   const hash = window.location.hash.slice(1)
   if (hash.startsWith('/view/')) return { page: 'share', param: hash.slice(6) }
+  if (hash.startsWith('/invite/')) return { page: 'invite', param: hash.slice(8) }
   if (hash === '/admin/audit') return { page: 'audit' }
   return { page: 'dashboard' }
 }
@@ -51,29 +54,41 @@ export function App() {
     return <ShareViewer shareToken={route.param} />
   }
 
+  if (route.page === 'invite' && route.param) {
+    return <InviteAccept inviteToken={route.param} />
+  }
+
   if (!token) {
     return <LoginPage />
   }
 
   if (route.page === 'audit') {
     return (
-      <div className="h-screen bg-zinc-950">
-        <header className="border-b border-zinc-800 px-4 py-2 flex items-center gap-4">
+      <div className="h-screen bg-[var(--color-bg)]">
+        <header
+          className="px-4 py-2 flex items-center gap-4"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
           <button
             type="button"
             onClick={() => {
               window.location.hash = ''
             }}
-            className="text-sm text-zinc-400 hover:text-zinc-100"
+            className="text-sm text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
           >
             Back
           </button>
-          <h1 className="text-lg font-bold text-zinc-100">Termless</h1>
+          <h1 className="text-lg font-bold text-[var(--color-text)]">Termless</h1>
         </header>
         <AuditLog />
       </div>
     )
   }
 
-  return <DashboardPage />
+  return (
+    <>
+      <DashboardPage />
+      <AppToaster />
+    </>
+  )
 }

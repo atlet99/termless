@@ -1,0 +1,100 @@
+/**
+ * Copyright 2026 Abdurakhman Rakhmankulov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* ── Design Tokens (Tokyo Night inspired) ── */
+/* Source of truth: DESIGN.md */
+
+:root {
+  /* Background levels (darkest → lightest) */
+  --color-bg: #0d0e1a;
+  --color-surface: #13141f;
+  --color-surface-2: #1a1b2e;
+  --color-surface-3: #20213a;
+  --color-surface-highest: #252742;
+
+  /* Borders */
+  --color-border: #1e2035;
+  --color-border-muted: #16172a;
+
+  /* Text hierarchy */
+  --color-text: #a9b1d6;
+  --color-text-dim: #565f89;
+  --color-text-muted: #3d4166;
+  --color-text-inverse: #1a1b26;
+
+  /* Accent (primary actions, links, focus) */
+  --color-accent: #7aa2f7;
+  --color-accent-muted: rgba(122, 162, 247, 0.1);
+  --color-accent-hover: rgba(122, 162, 247, 0.15);
+
+  /* Status colors */
+  --color-green: #9ece6a;
+  --color-green-muted: rgba(158, 206, 106, 0.1);
+  --color-yellow: #e0af68;
+  --color-yellow-muted: rgba(224, 175, 104, 0.1);
+  --color-red: #f7768e;
+  --color-red-muted: rgba(247, 118, 142, 0.1);
+  --color-purple: #bb9af7;
+  --color-purple-muted: rgba(187, 154, 247, 0.1);
+  --color-cyan: #7dcfff;
+  --color-orange: #ff9e64;
+
+  /* Tool colors (invariants — never swap) */
+  --color-tool-opencode: #9ece6a;
+  --color-tool-claude: #bb9af7;
+  --color-tool-bash: #e0af68;
+
+  /* Selection states */
+  --color-selection-hover: rgba(122, 162, 247, 0.08);
+  --color-selection-press: rgba(122, 162, 247, 0.12);
+
+  /* Overlay */
+  --color-overlay: rgba(13, 14, 26, 0.85);
+}
+
+/* ── Light theme ── */
+[data-theme="light"] {
+  --color-bg: #f3f4f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #eaecf4;
+  --color-surface-3: #dde0ee;
+  --color-surface-highest: #cdd0e8;
+
+  --color-border: #cdd0e3;
+  --color-border-muted: #e0e3f0;
+
+  --color-text: #1e2035;
+  --color-text-dim: #56618f;
+  --color-text-muted: #a0aac8;
+  --color-text-inverse: #ffffff;
+
+  --color-accent: #4062d0;
+  --color-accent-muted: rgba(64, 98, 208, 0.1);
+  --color-accent-hover: rgba(64, 98, 208, 0.14);
+
+  --color-green: #3d7a10;
+  --color-green-muted: rgba(61, 122, 16, 0.1);
+  --color-yellow: #8a6200;
+  --color-yellow-muted: rgba(138, 98, 0, 0.1);
+  --color-red: #b0243e;
+  --color-red-muted: rgba(176, 36, 62, 0.1);
+  --color-purple: #6b37b8;
+  --color-purple-muted: rgba(107, 55, 184, 0.1);
+  --color-cyan: #1266a8;
+
+  --color-selection-hover: rgba(64, 98, 208, 0.07);
+  --color-selection-press: rgba(64, 98, 208, 0.12);
+
+  --color-overlay: rgba(243, 244, 248, 0.85);
+}

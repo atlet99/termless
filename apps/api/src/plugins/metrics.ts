@@ -20,7 +20,11 @@ function isInternalIP(ip: string): boolean {
     ip === '127.0.0.1' ||
     ip === '::1' ||
     ip.startsWith('10.') ||
-    ip.startsWith('172.16.') ||
+    (ip.startsWith('172.') &&
+      (() => {
+        const second = Number(ip.split('.')[1])
+        return second >= 16 && second <= 31
+      })()) ||
     ip.startsWith('192.168.')
   )
 }

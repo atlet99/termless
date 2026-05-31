@@ -42,12 +42,18 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-      <div className="w-full max-w-md p-8 bg-zinc-900 rounded-xl border border-zinc-800">
-        <h1 className="text-2xl font-bold text-zinc-100 mb-6">{t('app.title')}</h1>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+      <div
+        className="w-full max-w-md p-8 rounded-xl"
+        style={{
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+        }}
+      >
+        <h1 className="text-2xl font-bold text-[var(--color-text)] mb-6">{t('app.title')}</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="email" className="block text-sm text-[var(--color-text-dim)] mb-1">
               {t('auth.email')}
             </label>
             <input
@@ -57,12 +63,23 @@ export function LoginPage() {
               onChange={(e) => {
                 setEmail(e.target.value)
               }}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
+              style={{
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-accent)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border)'
+              }}
               required
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm text-zinc-400 mb-1">
+            <label htmlFor="password" className="block text-sm text-[var(--color-text-dim)] mb-1">
               {t('auth.password')}
             </label>
             <input
@@ -72,15 +89,34 @@ export function LoginPage() {
               onChange={(e) => {
                 setPassword(e.target.value)
               }}
-              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-colors"
+              style={{
+                background: 'var(--color-surface-2)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text)',
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-accent)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border)'
+              }}
               required
             />
           </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && (
+            <p className="text-[var(--color-red)] text-sm" role="alert" aria-live="polite">
+              {error}
+            </p>
+          )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white font-medium transition-colors"
+            className="w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            style={{
+              background: 'var(--color-accent)',
+              color: 'var(--color-text-inverse)',
+            }}
           >
             {loading ? t('auth.signingIn') : t('auth.signIn')}
           </button>

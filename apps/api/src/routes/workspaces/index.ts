@@ -12,15 +12,16 @@
  * limitations under the License.
  */
 
-import { createWorkspaceSchema } from '@termless/shared'
-import { exec } from 'node:child_process'
+import { cloneWorkspaceSchema, createWorkspaceSchema } from '@termless/shared'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import type { FastifyInstance } from 'fastify'
+import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
 import { triggerWebhook } from '../webhooks/index.js'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const WORKSPACE_ROOT = process.env.WORKSPACE_ROOT || '/workspace'
 
@@ -42,12 +43,25 @@ async function getGitStatus(
   changedFiles: number
 }> {
   try {
-    const { stdout: branch } = await execAsync(
-      `sudo -u termless-user-${systemUid} git -C ${workspacePath} branch --show-current`,
-    )
-    const { stdout: status } = await execAsync(
-      `sudo -u termless-user-${systemUid} git -C ${workspacePath} status --porcelain`,
-    )
+    const sudoUser = `termless-user-${systemUid}`
+    const { stdout: branch } = await execFileAsync('sudo', [
+      '-u',
+      sudoUser,
+      'git',
+      '-C',
+      workspacePath,
+      'branch',
+      '--show-current',
+    ])
+    const { stdout: status } = await execFileAsync('sudo', [
+      '-u',
+      sudoUser,
+      'git',
+      '-C',
+      workspacePath,
+      'status',
+      '--porcelain',
+    ])
     return {
       branch: branch.trim(),
       changedFiles: status.split('\n').filter(Boolean).length,
@@ -142,6 +156,11 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       })
       void fastify.audit(user.id, 'workspace.create', { name: body.name }, request.ip)
       void triggerWebhook(fastify, 'workspace.created', { workspaceId: workspace.id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'workspace.created',
+        timestamp: new Date().toISOString(),
+        data: { workspaceId: workspace.id, name: body.name },
+      })
       return reply.code(201).send(workspace)
     },
   )
@@ -164,8 +183,112 @@ export async function registerWorkspaceRoutes(fastify: FastifyInstance) {
       await prisma.workspace.delete({ where: { id } })
       void fastify.audit(user.id, 'workspace.delete', { workspaceId: id }, request.ip)
       void triggerWebhook(fastify, 'workspace.deleted', { workspaceId: id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'workspace.deleted',
+        timestamp: new Date().toISOString(),
+        data: { workspaceId: id },
+      })
 
       return { ok: true }
+    },
+  )
+
+  fastify.get(
+    '/api/v1/workspaces/:id/files',
+    {
+      schema: {
+        tags: ['workspaces'],
+        description: 'Get file tree for workspace (shallow, 2 levels)',
+      },
+      preHandler: [requireRole('DEVELOPER')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const workspace = await fastify.prisma.workspace.findFirst({
+        where: { id, userId: user.id },
+      })
+      if (!workspace) return reply.code(404).send({ error: 'Workspace not found' })
+
+      try {
+        const { stdout } = await execFileAsync('find', [
+          workspace.path,
+          '-maxdepth',
+          '2',
+          '-not',
+          '-path',
+          '*/node_modules/*',
+          '-not',
+          '-path',
+          '*/.git/*',
+        ])
+        const entries = stdout
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .map((p) => {
+            const relative = p.slice(workspace.path.length).replace(/^\//, '')
+            return { path: relative, type: p.endsWith('/') ? 'dir' : 'file' }
+          })
+        return { entries }
+      } catch {
+        return { entries: [] }
+      }
+    },
+  )
+
+  fastify.post(
+    '/api/v1/workspaces/clone',
+    {
+      schema: { tags: ['workspaces'], description: 'Clone git repository as workspace' },
+      preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 5, timeWindow: '10 minutes' } },
+    },
+    async (request, reply) => {
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const body = cloneWorkspaceSchema.parse(request.body)
+
+      // Validate git URL format
+      const gitUrlPattern = /^(https?:\/\/|git@)\S+$/
+      if (!gitUrlPattern.test(body.url)) {
+        return reply.code(400).send({ error: 'Invalid git URL' })
+      }
+
+      const safeName = body.name.replaceAll(/[^\w-]/g, '')
+      if (!safeName) return reply.code(400).send({ error: 'Invalid workspace name' })
+
+      const dbUser = await fastify.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { systemUid: true },
+      })
+      if (!dbUser?.systemUid) {
+        return reply.code(400).send({ error: 'User not provisioned' })
+      }
+
+      const workspacePath = `${WORKSPACE_ROOT}/termless-user-${dbUser.systemUid}/${safeName}`
+
+      if (!validateWorkspacePath(workspacePath)) {
+        return reply.code(403).send({ error: 'Invalid workspace path' })
+      }
+
+      try {
+        await execFileAsync('git', ['clone', body.url, workspacePath])
+      } catch {
+        return reply.code(500).send({ error: 'Git clone failed' })
+      }
+
+      const workspace = await fastify.prisma.workspace.create({
+        data: { userId: user.id, name: safeName, path: workspacePath },
+      })
+
+      void fastify.audit(user.id, 'workspace.clone', { url: body.url, name: safeName }, request.ip)
+      void triggerWebhook(fastify, 'workspace.created', { workspaceId: workspace.id }, user.id)
+
+      return reply.code(201).send(workspace)
     },
   )
 }

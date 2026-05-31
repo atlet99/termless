@@ -37,11 +37,13 @@
     "@termless/worker": "workspace:*",
     "fastify": "catalog:",
     "fastify-plugin": "^5.0.1",
+    "openid-client": "^6.8.4",
     "pino": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@termless/eslint-config": "workspace:*",
+    "@types/node": "^25.9.1",
     "@types/ws": "^8.18.1",
     "eslint": "catalog:",
     "prisma": "^7.8.0",

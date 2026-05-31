@@ -13,6 +13,8 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface Recording {
@@ -27,6 +29,7 @@ interface Recording {
 }
 
 export function RecordingsList() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const { data: recordings, isLoading } = useQuery<Recording[]>({
@@ -35,8 +38,13 @@ export function RecordingsList() {
   })
 
   const deleteRecording = useMutation({
-    mutationFn: (id: string) => api.post(`/api/v1/recordings/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recordings'] }),
+    mutationFn: (id: string) => api.delete(`/api/v1/recordings/${id}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['recordings'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
   })
 
   const formatBytes = (bytes: number) => {
@@ -52,21 +60,29 @@ export function RecordingsList() {
     return `${m}:${String(s).padStart(2, '0')}`
   }
 
-  if (isLoading) return <div className="text-gray-400 p-4">Loading...</div>
+  if (isLoading) {
+    return <p className="text-[var(--color-text-dim)] p-4">{t('common.loading')}</p>
+  }
 
   return (
-    <div className="flex h-full flex-col gap-4 p-4">
-      <h2 className="text-lg font-semibold text-white">Recordings</h2>
+    <div>
+      <h1 className="text-lg font-semibold text-[var(--color-text)] mb-6">
+        {t('recordings.title')}
+      </h1>
 
       <div className="space-y-2">
         {recordings?.map((rec) => (
           <div
             key={rec.id}
-            className="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg"
+            className="flex items-center justify-between p-4 rounded-xl transition-colors hover:border-[var(--color-accent)]"
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+            }}
           >
             <div className="flex-1">
-              <div className="text-sm text-zinc-100">{rec.title ?? rec.sessionId}</div>
-              <div className="flex gap-4 text-xs text-zinc-500">
+              <div className="text-sm text-[var(--color-text)]">{rec.title ?? rec.sessionId}</div>
+              <div className="flex gap-4 text-xs text-[var(--color-text-dim)] mt-1">
                 <span>{formatDuration(rec.duration)}</span>
                 <span>{formatBytes(rec.sizeBytes)}</span>
                 <span>{new Date(rec.createdAt).toLocaleDateString()}</span>
@@ -77,24 +93,24 @@ export function RecordingsList() {
                 href={`/api/v1/recordings/${rec.id}/stream`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-purple-400 hover:text-purple-300"
+                className="text-xs text-[var(--color-accent)] hover:underline"
               >
-                Download
+                {t('recordings.download')}
               </a>
               <button
                 type="button"
                 onClick={() => {
                   deleteRecording.mutate(rec.id)
                 }}
-                className="text-xs text-zinc-500 hover:text-red-400"
+                className="text-xs border border-[var(--color-border)] rounded-full px-3 py-1 text-[var(--color-text-dim)] hover:border-[var(--color-red)] hover:text-[var(--color-red)] transition-colors"
               >
-                Delete
+                {t('common.delete')}
               </button>
             </div>
           </div>
         ))}
         {(!recordings || recordings.length === 0) && (
-          <p className="text-zinc-500 text-sm">No recordings yet</p>
+          <p className="text-[var(--color-text-dim)] text-sm">{t('recordings.empty')}</p>
         )}
       </div>
     </div>

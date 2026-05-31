@@ -23,7 +23,26 @@ import { loginSchema } from '@termless/shared'
 import { authAttemptsTotal } from '@termless/shared'
 import { totpSetupSchema } from '@termless/shared'
 import { triggerWebhook } from '../webhooks/index.js'
+import { eventBus } from '../../lib/event-bus.js'
 import type { FastifyInstance } from 'fastify'
+
+// In-memory store for pending TOTP secrets (until verification)
+const pendingTotpSecrets = new Map<string, { secret: string; expiresAt: number }>()
+
+// Cleanup expired entries every 5 minutes
+setInterval(
+  () => {
+    const now = Date.now()
+    for (const [key, value] of pendingTotpSecrets) {
+      if (value.expiresAt < now) {
+        pendingTotpSecrets.delete(key)
+      }
+    }
+  },
+  5 * 60 * 1000,
+)
+
+const AUTH_LOGIN_ACTION = 'auth.login'
 
 export async function registerAuthRoutes(fastify: FastifyInstance) {
   const redisUrl = process.env.REDIS_URL
@@ -55,12 +74,12 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
         return reply.code(401).send({ error: 'Invalid credentials' })
       }
 
-      if (user.totpSecret) {
+      if (user.totpSecret && user.totpVerified) {
         if (!body.totpCode || !verifyTotpCode(user.totpSecret, body.totpCode)) {
           authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
           return reply.code(401).send({ error: 'Invalid TOTP code' })
         }
-      } else if (user.totpVerified || user.role === 'ADMIN' || user.role === 'OPERATOR') {
+      } else if (user.role === 'ADMIN' || user.role === 'OPERATOR') {
         authAttemptsTotal.inc({ mode: 'local', result: 'failure' })
         return reply.code(403).send({
           error: 'TOTP setup required',
@@ -84,8 +103,13 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       )
 
       authAttemptsTotal.inc({ mode: 'local', result: 'success' })
-      void fastify.audit(user.id, 'auth.login', undefined, request.ip)
-      void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
+      void fastify.audit(user.id, AUTH_LOGIN_ACTION, undefined, request.ip)
+      void triggerWebhook(fastify, AUTH_LOGIN_ACTION, { userId: user.id }, user.id)
+      eventBus.publish(user.id, {
+        type: AUTH_LOGIN_ACTION,
+        timestamp: new Date().toISOString(),
+        data: { userId: user.id },
+      })
 
       return {
         token,
@@ -133,7 +157,54 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
     },
     async (_request, reply) => {
-      return reply.code(501).send({ error: 'OIDC not yet configured' })
+      const issuerUrl = process.env.OIDC_ISSUER_URL
+      const clientId = process.env.OIDC_CLIENT_ID
+
+      if (!issuerUrl || !clientId) {
+        return reply
+          .code(501)
+          .send({ error: 'OIDC not configured. Set OIDC_ISSUER_URL and OIDC_CLIENT_ID.' })
+      }
+
+      try {
+        const oidc = await import('openid-client')
+        const config = await oidc.discovery(
+          new URL(issuerUrl),
+          clientId,
+          undefined,
+          oidc.ClientSecretPost(process.env.OIDC_CLIENT_SECRET ?? ''),
+        )
+
+        const codeVerifier = oidc.randomPKCECodeVerifier()
+        const codeChallenge = await oidc.calculatePKCECodeChallenge(codeVerifier)
+        const state = oidc.randomState()
+        const nonce = oidc.randomNonce()
+
+        if (redisUrl) {
+          const { getRedisClient } = await import('@termless/auth')
+          const redis = await getRedisClient(redisUrl)
+          await redis.set(`termless:oidc:${state}`, JSON.stringify({ codeVerifier, nonce }), {
+            EX: 300,
+          })
+        }
+
+        const redirectUri = `${process.env.API_PUBLIC_URL ?? ''}/auth/oidc/callback`
+        const authEndpoint = config.serverMetadata().authorization_endpoint
+        if (!authEndpoint) return await reply.code(500).send({ error: 'No authorization endpoint' })
+        const authUrl = new URL(authEndpoint)
+        authUrl.searchParams.set('client_id', clientId)
+        authUrl.searchParams.set('response_type', 'code')
+        authUrl.searchParams.set('scope', 'openid email profile')
+        authUrl.searchParams.set('code_challenge', codeChallenge)
+        authUrl.searchParams.set('code_challenge_method', 'S256')
+        authUrl.searchParams.set('state', state)
+        authUrl.searchParams.set('nonce', nonce)
+        authUrl.searchParams.set('redirect_uri', redirectUri)
+
+        return await reply.redirect(authUrl.toString())
+      } catch {
+        return reply.code(500).send({ error: 'OIDC discovery failed' })
+      }
     },
   )
 
@@ -142,8 +213,90 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
     {
       schema: { tags: ['auth'], hide: true, description: 'OIDC callback' },
     },
-    async (_request, reply) => {
-      return reply.code(501).send({ error: 'OIDC not yet configured' })
+    async (request, reply) => {
+      const issuerUrl = process.env.OIDC_ISSUER_URL
+      const clientId = process.env.OIDC_CLIENT_ID
+      const redirectUri = `${process.env.API_PUBLIC_URL ?? ''}/auth/oidc/callback`
+
+      if (!issuerUrl || !clientId || !redisUrl) {
+        return reply.code(501).send({ error: 'OIDC not configured' })
+      }
+
+      const query = request.query as Record<string, string | undefined>
+      const state = query.state
+      if (!state) return reply.code(400).send({ error: 'Missing state' })
+
+      try {
+        const { getRedisClient } = await import('@termless/auth')
+        const redis = await getRedisClient(redisUrl)
+        const stored = await redis.get(`termless:oidc:${state}`)
+        if (!stored) return await reply.code(400).send({ error: 'Invalid or expired state' })
+        await redis.del(`termless:oidc:${state}`)
+
+        const storedData = JSON.parse(stored) as {
+          codeVerifier: string
+          nonce: string
+        }
+
+        const oidc = await import('openid-client')
+        const config = await oidc.discovery(
+          new URL(issuerUrl),
+          clientId,
+          undefined,
+          oidc.ClientSecretPost(process.env.OIDC_CLIENT_SECRET ?? ''),
+        )
+
+        const currentUrl = new URL(
+          `${redirectUri}?${new URLSearchParams(query as Record<string, string>)}`,
+        )
+        const tokenResponse = await oidc.authorizationCodeGrant(config, currentUrl, {
+          expectedState: state,
+          pkceCodeVerifier: storedData.codeVerifier,
+          expectedNonce: storedData.nonce,
+        })
+
+        const claims = tokenResponse.claims()
+        const email = (claims?.email as string) ?? ''
+        const displayName = ((claims?.name as string) ?? email) || ''
+
+        if (!email) return await reply.code(400).send({ error: 'No email in OIDC claims' })
+
+        let user = await fastify.prisma.user.findUnique({ where: { email } })
+        if (!user) {
+          user = await fastify.prisma.user.create({
+            data: { email, displayName, role: 'DEVELOPER' },
+          })
+        }
+
+        const ttlSeconds = 8 * 60 * 60
+        const token = await createSession(
+          redisUrl,
+          {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName,
+            role: user.role,
+          },
+          ttlSeconds,
+        )
+
+        authAttemptsTotal.inc({ mode: 'oidc', result: 'success' })
+        void fastify.audit(user.id, 'auth.login', { mode: 'oidc' }, request.ip)
+        void triggerWebhook(fastify, 'auth.login', { userId: user.id }, user.id)
+
+        const frontendUrl = process.env.FRONTEND_URL ?? '/'
+        reply.setCookie('termless_session', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: ttlSeconds,
+        })
+        return await reply.redirect(frontendUrl)
+      } catch {
+        authAttemptsTotal.inc({ mode: 'oidc', result: 'failure' })
+        return reply.code(500).send({ error: 'OIDC callback failed' })
+      }
     },
   )
 
@@ -163,14 +316,16 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
       if (!dbUser) return reply.code(404).send({ error: 'User not found' })
 
-      if (dbUser.totpSecret) {
+      if (dbUser.totpVerified) {
         return reply.send({ message: 'TOTP already set up' })
       }
 
       const { secret, uri } = generateTotpSecret(dbUser.email)
-      await fastify.prisma.user.update({
-        where: { id: user.id },
-        data: { totpSecret: secret },
+
+      // Store secret temporarily in memory (not in DB) until verification
+      pendingTotpSecrets.set(user.id, {
+        secret,
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 min TTL
       })
 
       return { secret, uri }
@@ -197,18 +352,31 @@ export async function registerAuthRoutes(fastify: FastifyInstance) {
       if (!user) return reply.code(401).send({ error: 'Not authenticated' })
 
       const body = totpSetupSchema.parse(request.body)
-      const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
-      if (!dbUser?.totpSecret) {
-        return reply.code(400).send({ error: 'TOTP not set up' })
+
+      // Read pending secret from in-memory store
+      const pending = pendingTotpSecrets.get(user.id)
+      let secret: string | null = pending?.secret ?? null
+
+      // Fallback to DB if not in memory (for already-setup users)
+      if (!secret) {
+        const dbUser = await fastify.prisma.user.findUnique({ where: { id: user.id } })
+        secret = dbUser?.totpSecret ?? null
       }
 
-      if (!verifyTotpCode(dbUser.totpSecret, body.totpCode)) {
+      if (!secret) {
+        return reply.code(400).send({ error: 'TOTP not set up. Call /auth/totp/setup first.' })
+      }
+
+      if (!verifyTotpCode(secret, body.totpCode)) {
         return reply.code(401).send({ error: 'Invalid TOTP code' })
       }
 
+      // Clean up pending secret
+      pendingTotpSecrets.delete(user.id)
+
       await fastify.prisma.user.update({
         where: { id: user.id },
-        data: { totpVerified: true },
+        data: { totpSecret: secret, totpVerified: true },
       })
 
       return { ok: true }

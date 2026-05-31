@@ -31,13 +31,22 @@ export function EmbeddedTerminalLayout({
   return (
     <Group orientation="horizontal" className="h-full">
       <Panel defaultSize={25} minSize={15} maxSize={40}>
-        <div className="h-full bg-zinc-900 border-r border-zinc-800 flex flex-col">
-          <div className="p-3 border-b border-zinc-800 flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-300">Sessions</span>
+        <div
+          className="h-full flex flex-col"
+          style={{
+            background: 'var(--color-surface)',
+            borderRight: '1px solid var(--color-border)',
+          }}
+        >
+          <div
+            className="p-3 flex items-center justify-between"
+            style={{ borderBottom: '1px solid var(--color-border)' }}
+          >
+            <span className="text-sm font-medium text-[var(--color-text)]">Sessions</span>
             <button
               type="button"
               onClick={onClose}
-              className="text-xs text-zinc-500 hover:text-zinc-300"
+              className="text-xs text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
             >
               Back
             </button>
@@ -50,14 +59,25 @@ export function EmbeddedTerminalLayout({
                 onClick={() => {
                   onSelectSession(session.id)
                 }}
-                className={`w-full text-left px-3 py-2 text-sm border-b border-zinc-800 transition-colors ${
-                  activeSessionId === session.id
-                    ? 'bg-purple-600/20 text-purple-300'
-                    : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
-                }`}
+                className="w-full text-left px-3 py-2 text-sm transition-colors"
+                style={{
+                  background:
+                    activeSessionId === session.id ? 'var(--color-accent-muted)' : 'transparent',
+                  color:
+                    activeSessionId === session.id
+                      ? 'var(--color-accent)'
+                      : 'var(--color-text-dim)',
+                  borderBottom: '1px solid var(--color-border-muted)',
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="px-1.5 py-0.5 bg-zinc-800 rounded text-xs font-mono">
+                  <span
+                    className="px-1.5 py-0.5 rounded text-xs font-mono"
+                    style={{
+                      background: 'var(--color-surface-3)',
+                      color: 'var(--color-text-dim)',
+                    }}
+                  >
                     {session.tool}
                   </span>
                   <span className="truncate">{session.name ?? session.id}</span>
@@ -65,18 +85,18 @@ export function EmbeddedTerminalLayout({
               </button>
             ))}
             {sessions.length === 0 && (
-              <p className="px-3 py-4 text-zinc-500 text-sm">No sessions</p>
+              <p className="px-3 py-4 text-[var(--color-text-dim)] text-sm">No sessions</p>
             )}
           </div>
         </div>
       </Panel>
-      <Separator className="w-1 bg-zinc-800 hover:bg-purple-600 transition-colors" />
+      <Separator className="w-1 bg-[var(--color-border)] hover:bg-[var(--color-accent)] transition-colors" />
       <Panel defaultSize={75} minSize={30}>
         <div className="h-full">
           {activeSessionId ? (
             <TerminalView sessionId={activeSessionId} />
           ) : (
-            <div className="h-full flex items-center justify-center text-zinc-500">
+            <div className="h-full flex items-center justify-center text-[var(--color-text-dim)]">
               Select a session from the sidebar
             </div>
           )}

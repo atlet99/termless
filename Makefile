@@ -38,6 +38,7 @@ include makefiles/lint.mk
 include makefiles/db.mk
 include makefiles/openapi.mk
 include makefiles/checks.mk
+include makefiles/packages.mk
 
 ##@ Compound
 
@@ -45,9 +46,6 @@ setup: install db-generate db-migrate db-seed license-add  ## Full initial proje
 	$(call log_section, "Termless setup complete!")
 	$(call log_info, "Run 'make up-dev' to start in dev mode")
 	$(call log_info, "Run 'make up' to start in production mode")
-
-ci: lint typecheck test openapi-ci docs-lint knip  ## Full CI pipeline check
-	$(call log_section, "CI checks passed!")
 
 ci-security: packages-audit  ## Security-focused CI checks
 	$(call log_section, "Security checks passed!")

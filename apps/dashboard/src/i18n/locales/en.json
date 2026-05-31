@@ -15,15 +15,120 @@
     "connect": "Connect",
     "delete": "Delete",
     "back": "← Back",
-    "logout": "Logout"
+    "logout": "Logout",
+    "settings": "Settings",
+    "viewAuditLog": "View Audit Log"
   },
   "session": {
     "newOpencode": "+ Opencode",
     "newClaude": "+ Claude",
     "newBash": "+ Bash",
-    "connected": "Connected to Termless terminal"
+    "connected": "Connected to Termless terminal",
+    "name": "Session name",
+    "notes": "Notes (max 200 chars)"
+  },
+  "sidebar": {
+    "navigation": "Navigation",
+    "terminal": "Terminal",
+    "sessions": "Sessions",
+    "workspaces": "Workspaces",
+    "templates": "Templates",
+    "recordings": "Recordings",
+    "envVars": "Env Vars",
+    "snippets": "Snippets",
+    "logs": "Logs",
+    "processes": "Processes",
+    "admin": "Admin",
+    "settings": "Settings",
+    "newSession": "New Session",
+    "quickLaunch": "Quick Launch"
+  },
+  "workspaces": {
+    "title": "Workspaces",
+    "create": "Create",
+    "clone": "Clone",
+    "delete": "Delete",
+    "newName": "New workspace name",
+    "pathPlaceholder": "e.g. /workspace/my-project",
+    "gitUrl": "Git URL",
+    "name": "Name",
+    "empty": "No workspaces yet"
+  },
+  "recordings": {
+    "title": "Recordings",
+    "download": "Download",
+    "delete": "Delete",
+    "empty": "No recordings yet"
+  },
+  "envVars": {
+    "title": "Environment Variables",
+    "name": "Name (e.g. ANTHROPIC_API_KEY)",
+    "value": "Value",
+    "save": "Save",
+    "delete": "Delete",
+    "empty": "No environment variables configured",
+    "encrypted": "Values are encrypted with AES-256-GCM. Only masked values are shown."
+  },
+  "snippets": {
+    "title": "Snippets",
+    "name": "Name (e.g. Restart API)",
+    "command": "Command (e.g. docker compose restart api)",
+    "tags": "Tags (comma-separated, e.g. docker, dev)",
+    "add": "Add Snippet",
+    "delete": "Delete",
+    "empty": "No snippets yet",
+    "hint": "Use Ctrl+Shift+P in terminal to quickly insert snippets"
+  },
+  "audit": {
+    "title": "Audit Log",
+    "exportCsv": "Export CSV",
+    "userId": "User ID",
+    "action": "Action (e.g. auth.login)",
+    "time": "Time",
+    "user": "User",
+    "details": "Details",
+    "ip": "IP",
+    "prev": "Prev",
+    "next": "Next"
+  },
+  "admin": {
+    "title": "User Management",
+    "auditLog": "Audit Log",
+    "actionPlaceholder": "Action (e.g. auth.login)"
+  },
+  "invite": {
+    "pairSession": "Pair Session",
+    "invitedBy": "Invited by",
+    "invalid": "Invalid or expired invite",
+    "loading": "Loading invite..."
+  },
+  "share": {
+    "readOnly": "Read-Only"
   },
   "common": {
-    "error": "Error"
+    "error": "Error",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "templates": {
+    "new": "New Template",
+    "edit": "Edit Template",
+    "name": "Template name",
+    "namePlaceholder": "e.g. api-dev",
+    "tool": "Tool",
+    "workingDir": "Working directory",
+    "workingDirPlaceholder": "e.g. /workspace/project/apps/api",
+    "envVars": "Environment variables (KEY=VALUE, comma-separated)",
+    "envVarsPlaceholder": "e.g. NODE_ENV=development, DEBUG=true",
+    "create": "Create",
+    "save": "Save",
+    "empty": "No templates yet"
+  },
+  "toast": {
+    "sessionCreated": "Session created",
+    "sessionDeleted": "Session deleted"
   }
 }

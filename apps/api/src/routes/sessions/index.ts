@@ -12,16 +12,17 @@
  * limitations under the License.
  */
 
-import { createSessionSchema } from '@termless/shared'
+import { createSessionSchema, execCommandSchema, patchSessionSchema } from '@termless/shared'
 import { activeSessionsTotal } from '@termless/shared'
-import { provisionOsUser, startTtyd } from '@termless/worker'
+import { getActivePorts, provisionOsUser, startTtyd } from '@termless/worker'
 import type { FastifyInstance } from 'fastify'
+import { eventBus } from '../../lib/event-bus.js'
 import { requireRole } from '../../plugins/rbac.js'
 import { triggerWebhook } from '../webhooks/index.js'
-import { exec } from 'node:child_process'
+import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const SYSTEM_UID_MIN = 2000
 const SYSTEM_UID_MAX = 60000
@@ -37,9 +38,12 @@ async function checkDiskQuota(
   try {
     // Use dust for faster disk usage calculation
     // dust -o m outputs size in MiB (e.g., "1024.5 /path")
-    const { stdout } = await execAsync(
-      `dust -o m --skip-total "${workspacePath}" 2>/dev/null || echo "0 /"`,
-    )
+    const { stdout } = await execFileAsync('dust', [
+      '-o',
+      'm',
+      '--skip-total',
+      workspacePath,
+    ]).catch(() => ({ stdout: '0 /' }))
     // Parse: "1024.5 /path" or "1.2G /path"
     const match = stdout
       .split('\n')[0]
@@ -90,6 +94,22 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       if (!user) return reply.code(401).send({ error: 'Unauthorized' })
       const prisma = fastify.prisma
 
+      // If templateId provided, use template values as defaults
+      let resolvedTool = body.tool
+      let resolvedName = body.name
+      let resolvedWorkspaceId = body.workspaceId
+
+      if (body.templateId) {
+        const template = await prisma.sessionTemplate.findFirst({
+          where: { id: body.templateId, userId: user.id },
+        })
+        if (template) {
+          resolvedTool = template.tool
+          resolvedName = resolvedName ?? template.name
+          resolvedWorkspaceId = resolvedWorkspaceId ?? undefined
+        }
+      }
+
       const maxSessions = Number(process.env.MAX_SESSIONS_PER_USER) || 5
       const currentCount = await prisma.session.count({ where: { userId: user.id } })
       if (currentCount >= maxSessions) {
@@ -120,9 +140,9 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
 
       let workspacePath = `${workspaceRoot}/termless-user-${systemUid}`
 
-      if (body.workspaceId) {
+      if (resolvedWorkspaceId) {
         const workspace = await prisma.workspace.findFirst({
-          where: { id: body.workspaceId, userId: user.id },
+          where: { id: resolvedWorkspaceId, userId: user.id },
         })
         if (workspace?.path.startsWith(workspaceRoot)) {
           workspacePath = workspace.path
@@ -145,14 +165,27 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       const session = await prisma.session.create({
         data: {
           userId: user.id,
-          name: body.name ?? null,
-          tool: body.tool,
-          tmuxSession: `termless-${systemUid}-${body.tool}-${Date.now()}`,
+          name: resolvedName ?? null,
+          notes: body.notes ?? null,
+          tool: resolvedTool,
+          tmuxSession: `termless-${systemUid}-${resolvedTool}-${Date.now()}`,
           lastSeenAt: new Date(),
         },
       })
 
-      const port = 10000 + Math.floor(Math.random() * 50000)
+      // Allocate port with collision check
+      const usedPorts = new Set(getActivePorts())
+      let port: number
+      let attempts = 0
+      do {
+        port = 10_000 + Math.floor(Math.random() * 50_000)
+        attempts++
+      } while (usedPorts.has(port) && attempts < 100)
+
+      if (usedPorts.has(port)) {
+        return reply.code(503).send({ error: 'No available ports' })
+      }
+
       startTtyd({
         port,
         userId: systemUid,
@@ -167,6 +200,11 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       activeSessionsTotal.inc({ tool: body.tool, role: user.role })
       void fastify.audit(user.id, 'session.create', { tool: body.tool }, request.ip)
       void triggerWebhook(fastify, 'session.created', { sessionId: session.id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'session.created',
+        timestamp: new Date().toISOString(),
+        data: { sessionId: session.id, tool: body.tool },
+      })
 
       return {
         id: session.id,
@@ -221,8 +259,96 @@ export async function registerSessionRoutes(fastify: FastifyInstance) {
       activeSessionsTotal.dec({ tool: session.tool, role: user.role })
       void fastify.audit(user.id, 'session.delete', { sessionId: id }, request.ip)
       void triggerWebhook(fastify, 'session.terminated', { sessionId: id }, user.id)
+      eventBus.publish(user.id, {
+        type: 'session.terminated',
+        timestamp: new Date().toISOString(),
+        data: { sessionId: id },
+      })
 
       return { ok: true }
+    },
+  )
+
+  fastify.post(
+    '/api/v1/sessions/:id/exec',
+    {
+      schema: { tags: ['sessions'], description: 'Execute command in terminal session' },
+      preHandler: [requireRole('DEVELOPER')],
+      config: { rateLimit: { max: 30, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const body = execCommandSchema.parse(request.body)
+
+      const prisma = fastify.prisma
+      const session = await prisma.session.findUnique({ where: { id } })
+      if (!session) return reply.code(404).send({ error: 'Session not found' })
+      if (session.userId !== user.id && user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+
+      const sessionUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { systemUid: true },
+      })
+      if (!sessionUser?.systemUid) {
+        return reply.code(500).send({ error: 'User system account not found' })
+      }
+
+      const sudoUser = `termless-user-${sessionUser.systemUid}`
+      execFileAsync('sudo', [
+        '-u',
+        sudoUser,
+        'tmux',
+        'send-keys',
+        '-t',
+        session.tmuxSession,
+        body.command,
+        'Enter',
+      ]).catch(() => {
+        // Fire-and-forget: tmux send-keys may fail if session is dead
+      })
+
+      void fastify.audit(
+        user.id,
+        'session.exec',
+        { sessionId: id, command: body.command },
+        request.ip,
+      )
+
+      return { ok: true }
+    },
+  )
+
+  fastify.patch(
+    '/api/v1/sessions/:id',
+    {
+      schema: { tags: ['sessions'], description: 'Update session name/notes' },
+      preHandler: [requireRole('DEVELOPER')],
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const user = request.user
+      if (!user) return reply.code(401).send({ error: 'Unauthorized' })
+
+      const body = patchSessionSchema.parse(request.body)
+      const prisma = fastify.prisma
+
+      const session = await prisma.session.findUnique({ where: { id } })
+      if (!session) return reply.code(404).send({ error: 'Session not found' })
+      if (session.userId !== user.id && user.role !== 'ADMIN') {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+
+      const data: Record<string, unknown> = {}
+      if (body.name !== undefined) data.name = body.name
+      if (body.notes !== undefined) data.notes = body.notes
+
+      const updated = await prisma.session.update({ where: { id }, data })
+      return updated
     },
   )
 }
