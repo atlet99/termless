@@ -43,13 +43,6 @@
     "newSession": "Новая сессия",
     "quickLaunch": "Быстрый запуск"
   },
-  "tabs": {
-    "sessions": "Сессии",
-    "workspaces": "Рабочие пространства",
-    "recordings": "Записи",
-    "envVars": "Переменные окружения",
-    "snippets": "Сниппеты"
-  },
   "workspaces": {
     "title": "Рабочие пространства",
     "create": "Создать",

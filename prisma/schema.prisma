@@ -44,6 +44,8 @@ model Session {
   updatedAt   DateTime    @updatedAt
 
   @@index([userId])
+  @@index([tool])
+  @@index([createdAt])
 }
 
 model Workspace {
@@ -125,6 +127,7 @@ model Recording {
 
   @@index([userId])
   @@index([sessionId])
+  @@index([createdAt])
 }
 
 model ApiToken {
@@ -138,6 +141,7 @@ model ApiToken {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
 }
 
 model UserEnvVar {

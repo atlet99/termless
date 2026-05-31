@@ -57,6 +57,13 @@ export function AuditLog() {
     },
   })
 
+  const escapeCsv = (value: string): string => {
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+      return `"${value.replaceAll('"', '""')}"`
+    }
+    return value
+  }
+
   const handleExport = async () => {
     const params = new URLSearchParams({ page: '1', limit: '10000' })
     if (userId) params.set('userId', userId)
@@ -64,14 +71,12 @@ export function AuditLog() {
     if (from) params.set('from', from)
     if (to) params.set('to', to)
     const result = await api.get<AuditResponse>(`/api/v1/admin/audit-logs?${params.toString()}`)
-    const rows = result.data.map((e) => [
-      e.createdAt,
-      e.userId,
-      e.action,
-      JSON.stringify(e.details ?? {}),
-      e.ip ?? '',
-    ])
-    const csv = ['timestamp,userId,action,details,ip', ...rows.map((r) => r.join(','))].join('\n')
+    const rows = result.data.map((e) =>
+      [e.createdAt, e.userId, e.action, JSON.stringify(e.details ?? {}), e.ip ?? '']
+        .map(escapeCsv)
+        .join(','),
+    )
+    const csv = ['timestamp,userId,action,details,ip', ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

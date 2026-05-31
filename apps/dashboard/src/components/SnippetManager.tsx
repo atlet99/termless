@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface Snippet {
@@ -52,12 +53,18 @@ export function SnippetManager() {
       setCommand('')
       setTags('')
     },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
   })
 
   const deleteSnippet = useMutation({
     mutationFn: (id: string) => api.delete(`/api/v1/snippets/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['snippets'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 

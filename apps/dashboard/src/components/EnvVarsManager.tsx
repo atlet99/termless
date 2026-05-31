@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 
 interface EnvVar {
@@ -50,12 +51,18 @@ export function EnvVarsManager() {
       setName('')
       setValue('')
     },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
   })
 
   const deleteEnvVar = useMutation({
     mutationFn: (varName: string) => api.delete(`/api/v1/env-vars/${encodeURIComponent(varName)}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['env-vars'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 

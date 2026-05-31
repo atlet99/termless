@@ -43,13 +43,6 @@
     "newSession": "New Session",
     "quickLaunch": "Quick Launch"
   },
-  "tabs": {
-    "sessions": "Sessions",
-    "workspaces": "Workspaces",
-    "recordings": "Recordings",
-    "envVars": "Env Vars",
-    "snippets": "Snippets"
-  },
   "workspaces": {
     "title": "Workspaces",
     "create": "Create",

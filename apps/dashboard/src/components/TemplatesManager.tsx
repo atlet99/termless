@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { api } from '../lib/api'
 import { ToolBadge } from './ToolBadge'
 
@@ -55,6 +56,9 @@ export function TemplatesManager() {
       void queryClient.invalidateQueries({ queryKey: ['templates'] })
       resetForm()
     },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
   })
 
   const updateTemplate = useMutation({
@@ -72,12 +76,18 @@ export function TemplatesManager() {
       void queryClient.invalidateQueries({ queryKey: ['templates'] })
       resetForm()
     },
+    onError: (err: Error) => {
+      toast.error(err.message)
+    },
   })
 
   const deleteTemplate = useMutation({
     mutationFn: (id: string) => api.delete(`/api/v1/templates/${id}`),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['templates'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message)
     },
   })
 

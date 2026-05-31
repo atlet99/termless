@@ -112,20 +112,17 @@ export function stopTtyd(port: number): void {
       clearTimeout(killTimeout)
     })
 
-    activeProcesses.delete(port)
-    workerProcessesTotal.dec({ tool: 'ttyd' })
+    // Note: activeProcesses.delete and metrics dec happen in the 'exit' handler
   }
 }
 
 export function stopAllTtyd(): void {
-  for (const [port, child] of activeProcesses) {
-    logger.info({ port }, 'Stopping ttyd')
+  for (const [, child] of activeProcesses) {
     child.kill('SIGTERM')
 
     // SIGKILL fallback after 5 seconds
     const killTimeout = setTimeout(() => {
       if (!child.killed) {
-        logger.warn({ port }, 'ttyd did not exit, sending SIGKILL')
         child.kill('SIGKILL')
       }
     }, 5000)
@@ -134,8 +131,7 @@ export function stopAllTtyd(): void {
       clearTimeout(killTimeout)
     })
   }
-  activeProcesses.clear()
-  workerProcessesTotal.set({ tool: 'ttyd' }, 0)
+  // Note: activeProcesses.clear and metrics reset happen in the 'exit' handlers
 }
 
 export function getActivePorts(): number[] {
