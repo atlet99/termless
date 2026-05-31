@@ -15,6 +15,7 @@
 import { getRedisClient, getSession } from '@termless/auth'
 import { terminalConnectionsTotal, terminalDuration } from '@termless/shared'
 import { startRecording } from '@termless/worker'
+import type { RecordingSession } from '@termless/worker'
 import { eventBus } from '../lib/event-bus.js'
 import { triggerWebhook } from '../routes/webhooks/index.js'
 import type { FastifyInstance } from 'fastify'
@@ -133,7 +134,7 @@ export async function registerTerminalWs(fastify: FastifyInstance) {
       }
 
       const shouldRecord = request.query.record === 'true' && isOwner
-      let recording: ReturnType<typeof startRecording> | null = null
+      let recording: RecordingSession | null = null
 
       if (shouldRecord) {
         recording = startRecording(user.id, sessionId, 80, 24)
