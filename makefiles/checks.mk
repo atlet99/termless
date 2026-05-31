@@ -32,7 +32,7 @@ license-fix:  ## Insert or replace license headers to match canonical form
 	$(call log_ok, "License headers fixed")
 
 knip:  ## Find unused files, dependencies and exports
-	$(call log_step, "Running Knip (dead code detection)")
+	$(call log_step, "Running Knip - dead code detection")
 	@pnpm knip || true
 	$(call log_ok, "Knip check done")
 
@@ -80,7 +80,7 @@ secrets-scan:  ## Scan for secrets with Gitleaks
 	@gitleaks detect --source . --redact --verbose
 	$(call log_ok, "No secrets found")
 
-check-all: lint typecheck i18n-check license-check peers-check docs-lint  ## Run all checks (lint, typecheck, i18n, license, peers, docs)
+check-all: lint typecheck test build-ts i18n-check license-check peers-check docs-lint knip packages-audit  ## Run all checks (lint, typecheck, test, build, i18n, license, peers, docs, knip, audit)
 	$(call log_section, "All checks passed!")
 
 peers-check:  ## Check for peer dependency issues
@@ -94,4 +94,7 @@ peers-check:  ## Check for peer dependency issues
 fix-all: lint-fix license-fix  ## Auto-fix all auto-fixable issues (lint, format, license)
 	$(call log_section, "All fixes applied!")
 
-.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe shellcheck hadolint yamllint secrets-scan check-all peers-check fix-all
+ci: check-all  ## Alias for check-all (CI pipeline)
+	$(call log_section, "CI pipeline passed!")
+
+.PHONY: i18n-check license-check license-add license-fix knip docs-lint packages-sort packages-audit packages-dedupe shellcheck hadolint yamllint secrets-scan check-all peers-check fix-all ci
