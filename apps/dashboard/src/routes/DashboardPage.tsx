@@ -39,6 +39,27 @@ import { api } from '../lib/api'
 import { useNotifications } from '../lib/notifications'
 import { useAuthStore } from '../stores/auth'
 
+interface Session {
+  id: string
+  userId: string
+  name: string | null
+  tool: string
+  tmuxSession: string
+  ttydPort: number | null
+  lastSeenAt: string | null
+  createdAt: string
+}
+
+interface SessionTemplate {
+  id: string
+  name: string
+  tool: string
+  workingDir: string
+  envVars: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export function DashboardPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -87,7 +108,7 @@ export function DashboardPage() {
     }
   }, [])
 
-  const { data: sessions } = useQuery({
+  const { data: sessions } = useQuery<Session[]>({
     queryKey: ['sessions'],
     queryFn: () => api.getSessions(),
   })
@@ -102,7 +123,7 @@ export function DashboardPage() {
     queryFn: () => api.getSnippets(),
   })
 
-  const { data: templates } = useQuery({
+  const { data: templates } = useQuery<SessionTemplate[]>({
     queryKey: ['templates'],
     queryFn: () => api.get('/api/v1/templates'),
   })
@@ -139,8 +160,8 @@ export function DashboardPage() {
 
   // Popup terminal mode — full screen terminal
   if (activeSessionId && layoutMode === 'popup') {
-    const activeSession = sessions?.find((s: any) => s.id === activeSessionId)
-    const terminalTabs = (sessions ?? []).map((s: any) => ({
+    const activeSession = sessions?.find((s) => s.id === activeSessionId)
+    const terminalTabs = (sessions ?? []).map((s) => ({
       id: s.id,
       name: s.name ?? s.id.slice(0, 8),
       tool: s.tool,
@@ -276,7 +297,7 @@ export function DashboardPage() {
             {activeNav === 'sessions' && (
               <SessionsView
                 sessions={sessions ?? []}
-                templates={templates as any[]}
+                templates={templates}
                 onCreateSession={(tool, templateId) => {
                   createSession.mutate({
                     tool,
@@ -342,8 +363,8 @@ export function DashboardPage() {
 /* ── Sessions view (inline component) ── */
 
 interface SessionsViewProps {
-  sessions: any[]
-  templates: any[] | undefined
+  sessions: Session[]
+  templates: SessionTemplate[] | undefined
   onCreateSession: (tool: string, templateId?: string) => void
   onConnect: (id: string) => void
   onDelete: (id: string) => void
@@ -384,7 +405,7 @@ function SessionsView({
         <div className="mb-6">
           <h3 className="text-sm font-medium text-[var(--color-text-dim)] mb-2">From Template</h3>
           <div className="flex flex-wrap gap-2">
-            {templates.map((tpl: any) => (
+            {templates.map((tpl) => (
               <button
                 key={tpl.id}
                 type="button"
@@ -405,7 +426,7 @@ function SessionsView({
         {t('dashboard.activeSessions')}
       </h2>
       <div className="space-y-2">
-        {sessions.map((session: any) => (
+        {sessions.map((session) => (
           <div
             key={session.id}
             className="flex items-center justify-between p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl transition-colors hover:border-[var(--color-accent)]"
